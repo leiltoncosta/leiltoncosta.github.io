@@ -1,397 +1,396 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Controle de Distratos — Prazos Extrajudiciais</title>
+<title>Controle de Distratos — Leilton Costa Advocacia</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* ============================================================
-   TOKENS DE TEMA
+   PALETA — extraída do brasão do escritório
+   preto #181916 · branco #FFFFFD · bronze #A67B58
    ============================================================ */
 :root{
-  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-display: Georgia, "Times New Roman", "Palatino Linotype", serif;
-  --font-mono: "SF Mono", "Cascadia Code", Consolas, "Roboto Mono", monospace;
-  --radius: 10px;
-  --radius-sm: 6px;
-  --sidebar-w: 248px;
-  --header-h: 56px;
-  --transition: .18s cubic-bezier(.4,0,.2,1);
+  --font-display:"Lora", Georgia, "Times New Roman", serif;
+  --font-body:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:"SF Mono", "Cascadia Code", Consolas, monospace;
+  --ink:#181916; --bone:#FFFFFD; --bronze:#A67B58;
+  --r:12px; --r-sm:7px;
+  --bar-h:58px;
+  --t:.18s cubic-bezier(.4,0,.2,1);
 }
-html[data-theme="dark"]{
-  --bg:#0f1318; --bg-soft:#131820; --panel:#171d26; --panel-2:#1d242f; --panel-3:#232c39;
-  --border:#2a3341; --border-soft:#222a36;
-  --text:#e7eaef; --text-2:#9aa5b4; --text-3:#6b7686;
-  --accent:#d2a94f; --accent-soft:rgba(210,169,79,.14); --accent-text:#0f1318;
-  --blue:#5b8def;   --blue-soft:rgba(91,141,239,.15);
-  --green:#4cc38a;  --green-soft:rgba(76,195,138,.15);
-  --red:#ef6461;    --red-soft:rgba(239,100,97,.15);
-  --orange:#eda13e; --orange-soft:rgba(237,161,62,.15);
-  --purple:#a78bfa; --purple-soft:rgba(167,139,250,.15);
-  --shadow:0 8px 28px rgba(0,0,0,.45); --shadow-sm:0 2px 8px rgba(0,0,0,.35);
-  --mark-bg:rgba(210,169,79,.35);
+:root,:root[data-theme="light"]{
+  --bg:#F2EFEA; --panel:#FFFFFD; --panel-2:#F9F6F2; --panel-3:#EFEAE3;
+  --border:#E3DDD4; --border-soft:#EDE9E2;
+  --text:#181916; --text-2:#5D5A54; --text-3:#938D84;
+  --accent:#A67B58; --accent-deep:#8A6446; --accent-soft:rgba(166,123,88,.13); --accent-text:#FFFFFD;
+  --alert:#A6423A; --alert-soft:rgba(166,66,58,.11);
+  --done:#181916; --done-soft:rgba(24,25,22,.08);
+  --shadow:0 12px 34px rgba(24,25,22,.12); --shadow-sm:0 2px 8px rgba(24,25,22,.07);
 }
-html[data-theme="light"]{
-  --bg:#f3f4f7; --bg-soft:#eceef2; --panel:#ffffff; --panel-2:#f7f8fa; --panel-3:#eef0f4;
-  --border:#dde1e8; --border-soft:#e6e9ef;
-  --text:#1b2230; --text-2:#5a6474; --text-3:#8c95a5;
-  --accent:#9a7a2c; --accent-soft:rgba(154,122,44,.12); --accent-text:#ffffff;
-  --blue:#2f6bde;   --blue-soft:rgba(47,107,222,.10);
-  --green:#1d9e66;  --green-soft:rgba(29,158,102,.10);
-  --red:#d64541;    --red-soft:rgba(214,69,65,.10);
-  --orange:#cd7f1e; --orange-soft:rgba(205,127,30,.12);
-  --purple:#7c5ce0; --purple-soft:rgba(124,92,224,.10);
-  --shadow:0 10px 30px rgba(20,30,50,.12); --shadow-sm:0 2px 8px rgba(20,30,50,.08);
-  --mark-bg:rgba(210,169,79,.45);
+:root[data-theme="dark"]{
+  --bg:#131311; --panel:#1C1D1A; --panel-2:#232420; --panel-3:#2C2D27;
+  --border:#34352E; --border-soft:#282922;
+  --text:#F0EDE7; --text-2:#A9A49A; --text-3:#7C776E;
+  --accent:#C08F66; --accent-deep:#D2A582; --accent-soft:rgba(192,143,102,.16); --accent-text:#131311;
+  --alert:#D9615A; --alert-soft:rgba(217,97,90,.15);
+  --done:#C9C4BA; --done-soft:rgba(201,196,186,.12);
+  --shadow:0 14px 38px rgba(0,0,0,.5); --shadow-sm:0 2px 10px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{
-  font-family:var(--font-body); background:var(--bg); color:var(--text);
-  font-size:13.5px; line-height:1.5; overflow:hidden; -webkit-font-smoothing:antialiased;
+  font-family:var(--font-body);background:var(--bg);color:var(--text);
+  font-size:13.5px;line-height:1.5;overflow:hidden;-webkit-font-smoothing:antialiased;
 }
-button{font-family:inherit;cursor:pointer}
+button{font-family:inherit;cursor:pointer;color:inherit}
 input,select,textarea{font-family:inherit;color:inherit}
-a{color:var(--blue);text-decoration:none}
+a{color:var(--accent-deep);text-decoration:none}
 ::selection{background:var(--accent-soft)}
-::-webkit-scrollbar{width:10px;height:10px}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;border:2px solid var(--bg)}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px}
 ::-webkit-scrollbar-thumb:hover{background:var(--text-3)}
 ::-webkit-scrollbar-track{background:transparent}
 
 /* ============================================================
-   TELAS DE ENTRADA (configuração e login)
+   PORTAS DE ENTRADA
    ============================================================ */
-.gate{
-  position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9000;
-  overflow:auto;padding:24px;
-  background:
-    radial-gradient(1100px 620px at 12% -10%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
-    radial-gradient(900px 520px at 108% 112%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 60%),
-    var(--bg);
-}
+.gate{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9000;
+  overflow:auto;padding:24px 16px;background:var(--ink)}
 .gate.on{display:flex}
-.gate .box{
-  background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:34px 32px;
-  width:100%;max-width:360px;box-shadow:var(--shadow);
-  animation:gateIn .45s cubic-bezier(.16,1,.3,1) backwards;
-}
-.gate .box.wide{max-width:520px}
-@keyframes gateIn{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
-.brandrow{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:6px}
-.brandrow .mark{
-  width:34px;height:34px;border-radius:9px;
-  background:linear-gradient(145deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#000));
-  color:#fff;font-family:var(--font-display);font-size:19px;font-weight:700;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 40%,transparent)
-}
-.brandrow h1{font-family:var(--font-display);font-size:18px;font-weight:700}
-.gate .sub{text-align:center;font-size:10.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:22px}
-.fg{margin-bottom:13px;display:flex;flex-direction:column}
-.fg label{font-size:10.5px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}
-.fg input,.fg select,.fg textarea{
-  padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);
-  font-size:13px;background:var(--bg-soft);color:var(--text);outline:none;width:100%
-}
-.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent)}
-.fg .hint{font-size:11px;color:var(--text-3);margin-top:5px;line-height:1.45}
-.gate .err{color:var(--red);font-size:12px;margin:2px 0 10px;min-height:16px}
-.gate .helpbox{
-  background:var(--bg-soft);border:1px solid var(--border-soft);border-radius:var(--radius-sm);
-  padding:12px 14px;font-size:12px;color:var(--text-2);line-height:1.6;margin-bottom:18px
-}
+.gate:before{content:"";position:absolute;inset:0;
+  background:radial-gradient(760px 420px at 50% -8%, rgba(166,123,88,.22), transparent 62%)}
+.gate .box{position:relative;background:var(--panel);border-radius:var(--r);padding:34px 30px;
+  width:100%;max-width:370px;box-shadow:0 26px 70px rgba(0,0,0,.5);
+  animation:up .5s cubic-bezier(.16,1,.3,1) backwards}
+.gate .box.wide{max-width:540px}
+@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.gate .crest{display:block;width:62px;height:62px;margin:0 auto 16px;border-radius:10px;object-fit:cover}
+.gate h1{font-family:var(--font-display);font-size:19px;font-weight:600;text-align:center;letter-spacing:.2px}
+.gate .sub{text-align:center;font-size:10px;color:var(--text-3);text-transform:uppercase;
+  letter-spacing:2.2px;margin:6px 0 24px}
+.gate .rule{height:1px;background:var(--border);margin:0 0 22px;position:relative}
+.gate .rule:after{content:"";position:absolute;left:50%;top:-2px;transform:translateX(-50%);
+  width:34px;height:5px;background:var(--accent);border-radius:3px}
+.gate .err{color:var(--alert);font-size:12px;margin:2px 0 10px;min-height:16px}
+.gate .helpbox{background:var(--panel-2);border-left:3px solid var(--accent);border-radius:var(--r-sm);
+  padding:13px 15px;font-size:12px;color:var(--text-2);line-height:1.65;margin-bottom:18px}
 .gate .helpbox b{color:var(--text)}
-.gate .linkish{background:none;border:none;color:var(--text-3);font-size:11.5px;text-decoration:underline;padding:6px 0;display:block;margin:12px auto 0}
+.gate .linkish{background:none;border:none;color:var(--text-3);font-size:11.5px;
+  text-decoration:underline;padding:8px 0;display:block;margin:14px auto 0}
 .gate .linkish:hover{color:var(--accent)}
 
+.fg{margin-bottom:14px;display:flex;flex-direction:column}
+.fg label{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:6px}
+.fg input,.fg select,.fg textarea{padding:9px 11px;border:1px solid var(--border);
+  border-radius:var(--r-sm);font-size:13px;background:var(--panel-2);outline:none;width:100%;transition:var(--t)}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent);background:var(--panel)}
+.fg .hint{font-size:11px;color:var(--text-3);margin-top:5px;line-height:1.45}
+
 /* ============================================================
-   BOTÕES / CHIPS / BADGES
+   BOTÕES E ETIQUETAS
    ============================================================ */
-.btn{
-  display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:var(--radius-sm);
-  border:1px solid var(--border);background:var(--panel-2);color:var(--text);
-  font-size:12.5px;font-weight:600;transition:var(--transition);white-space:nowrap
-}
-.btn:hover{background:var(--panel-3);border-color:var(--text-3)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:var(--r-sm);
+  border:1px solid var(--border);background:var(--panel);font-size:12.5px;font-weight:600;
+  transition:var(--t);white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent-deep)}
 .btn:active{transform:translateY(1px)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text);box-shadow:0 2px 10px color-mix(in srgb,var(--accent) 30%,transparent)}
-.btn.primary:hover{filter:brightness(1.08)}
-.btn.green{background:var(--green-soft);border-color:color-mix(in srgb,var(--green) 40%,transparent);color:var(--green)}
-.btn.blue{background:var(--blue-soft);border-color:color-mix(in srgb,var(--blue) 40%,transparent);color:var(--blue)}
-.btn.danger{background:var(--red-soft);border-color:color-mix(in srgb,var(--red) 40%,transparent);color:var(--red)}
-.btn.sm{padding:5px 10px;font-size:11.5px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
+.btn.primary:hover{background:var(--bronze);border-color:var(--bronze);color:var(--accent-text);filter:brightness(1.08)}
+.btn.ink{background:var(--ink);border-color:var(--ink);color:var(--bone)}
+.btn.ink:hover{filter:brightness(1.4);color:var(--bone)}
+.btn.danger{border-color:color-mix(in srgb,var(--alert) 45%,transparent);color:var(--alert);background:var(--alert-soft)}
+.btn.sm{padding:5px 11px;font-size:11.5px}
 .btn.full{width:100%;justify-content:center}
 .btn.ghost{background:transparent;border-color:transparent;color:var(--text-2)}
-.btn.ghost:hover{background:var(--panel-2);color:var(--text)}
+.btn.ghost:hover{background:var(--panel-3);color:var(--text)}
 
-.badge{
-  display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;
-  font-size:11px;font-weight:700;letter-spacing:.2px;white-space:nowrap
-}
-.badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
-.badge.s-corrigir{background:var(--orange-soft);color:var(--orange)}
-.badge.s-emcorrecao{background:var(--blue-soft);color:var(--blue)}
-.badge.s-corrigido{background:var(--green-soft);color:var(--green)}
-.badge.s-finalizado{background:var(--purple-soft);color:var(--purple)}
-.badge.urgente{background:var(--red-soft);color:var(--red)}
-.badge.atraso{background:var(--red-soft);color:var(--red)}
-.badge.hoje{background:var(--orange-soft);color:var(--orange)}
-.badge.ok{background:var(--panel-3);color:var(--text-2)}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:5px;
+  font-size:10.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;white-space:nowrap}
+.tag.t-corrigir{background:var(--accent);color:var(--accent-text)}
+.tag.t-emcorrecao{background:var(--accent-soft);color:var(--accent-deep);box-shadow:inset 0 0 0 1px var(--accent)}
+.tag.t-corrigido{background:var(--done);color:var(--bg)}
+.tag.t-finalizado{background:var(--panel-3);color:var(--text-3)}
+.tag.t-alerta{background:var(--alert);color:var(--bone)}
+.tag.t-urg{background:var(--alert-soft);color:var(--alert);box-shadow:inset 0 0 0 1px var(--alert)}
 
 /* ============================================================
-   ESTRUTURA DO APP
+   BARRA SUPERIOR
    ============================================================ */
-#app{display:none;height:100vh;grid-template-columns:var(--sidebar-w) 1fr}
-#app.on{display:grid}
+#app{display:none;flex-direction:column;height:100vh}
+#app.on{display:flex}
+.topbar{flex:none;background:var(--ink);color:var(--bone);display:flex;align-items:center;
+  gap:8px;padding:0 18px;height:var(--bar-h);position:relative;z-index:50}
+.topbar .brand{display:flex;align-items:center;gap:11px;padding-right:18px;margin-right:4px;
+  border-right:1px solid rgba(255,255,253,.14)}
+.topbar .brand img{width:32px;height:32px;border-radius:6px;object-fit:cover;flex:none}
+.topbar .brand .nm{font-family:var(--font-display);font-size:14.5px;font-weight:600;
+  line-height:1.15;white-space:nowrap}
+.topbar .brand .sb{font-size:8.5px;letter-spacing:1.8px;text-transform:uppercase;
+  color:rgba(255,255,253,.5);white-space:nowrap}
+.tabs{display:flex;gap:2px;margin-left:6px}
+.tab{background:none;border:none;padding:0 14px;height:var(--bar-h);font-size:13px;font-weight:500;
+  color:rgba(255,255,253,.62);position:relative;transition:var(--t);white-space:nowrap}
+.tab:hover{color:var(--bone)}
+.tab.active{color:var(--bone);font-weight:600}
+.tab.active:after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:3px;
+  background:var(--bronze);border-radius:3px 3px 0 0}
+.tab .n{font-size:10.5px;font-weight:700;margin-left:6px;padding:1px 6px;border-radius:9px;
+  background:rgba(255,255,253,.13);color:rgba(255,255,253,.8)}
+.tab.active .n{background:var(--bronze);color:var(--ink)}
+.tab .n.al{background:var(--alert);color:var(--bone)}
+.topbar .grow{flex:1}
+.tsearch{position:relative;width:250px}
+.tsearch input{width:100%;padding:7px 11px 7px 31px;border-radius:var(--r-sm);font-size:12.5px;
+  background:rgba(255,255,253,.10);border:1px solid rgba(255,255,253,.14);color:var(--bone);outline:none;transition:var(--t)}
+.tsearch input::placeholder{color:rgba(255,255,253,.42)}
+.tsearch input:focus{background:rgba(255,255,253,.16);border-color:var(--bronze)}
+.tsearch svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:13px;height:13px;
+  color:rgba(255,255,253,.5)}
+.tbtn{width:31px;height:31px;display:flex;align-items:center;justify-content:center;flex:none;
+  border:1px solid rgba(255,255,253,.16);background:transparent;border-radius:var(--r-sm);
+  color:rgba(255,255,253,.72);transition:var(--t)}
+.tbtn:hover{background:rgba(255,255,253,.12);color:var(--bone)}
+.tbtn svg{width:14px;height:14px}
+.who{display:flex;align-items:center;gap:8px;padding-left:12px;margin-left:4px;
+  border-left:1px solid rgba(255,255,253,.14)}
+.who .av{width:27px;height:27px;border-radius:50%;background:var(--bronze);color:var(--ink);
+  display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;flex:none}
+.who .em{font-size:11.5px;color:rgba(255,255,253,.72);max-width:150px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
 
-.sidebar{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-.sidebar .top{padding:16px 18px;border-bottom:1px solid var(--border-soft)}
-.sidebar .top .brandrow{justify-content:flex-start;margin:0}
-.sidebar .top .brandrow h1{font-size:15px;line-height:1.2}
-.sidebar .top .brandrow .mark{width:30px;height:30px;font-size:17px}
-.sidebar .top .tag{font-size:9.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:1.2px;margin-top:8px;margin-left:2px}
-.sidebar nav{flex:1;overflow:auto;padding:12px 10px}
-.navlabel{font-size:9.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1.1px;padding:14px 10px 6px}
-.navitem{
-  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
-  padding:8px 10px;border-radius:var(--radius-sm);border:none;background:none;
-  color:var(--text-2);font-size:13px;font-weight:500;transition:var(--transition);margin-bottom:2px
-}
-.navitem:hover{background:var(--panel-2);color:var(--text)}
-.navitem.active{background:var(--accent-soft);color:var(--accent);font-weight:700}
-.navitem svg{width:16px;height:16px;flex:none;opacity:.9}
-.navitem .count{margin-left:auto;font-size:11px;font-weight:700;color:var(--text-3);background:var(--panel-3);padding:1px 7px;border-radius:10px}
-.navitem.active .count{background:var(--accent);color:var(--accent-text)}
-.navitem .count.alert{background:var(--red);color:#fff}
-.sidebar .foot{padding:12px 14px;border-top:1px solid var(--border-soft);font-size:11px;color:var(--text-3)}
-.sidebar .foot .who{color:var(--text-2);font-weight:600;margin-bottom:7px;word-break:break-all;font-size:11.5px}
-
-.main{display:flex;flex-direction:column;overflow:hidden;min-width:0}
-.topbar{
-  height:var(--header-h);flex:none;border-bottom:1px solid var(--border);background:var(--panel);
-  display:flex;align-items:center;gap:14px;padding:0 20px
-}
-.topbar h2{font-family:var(--font-display);font-size:17px;font-weight:700;white-space:nowrap}
-.topbar .spacer{flex:1}
-.search{position:relative;flex:1;max-width:340px}
-.search input{
-  width:100%;padding:7px 11px 7px 32px;border:1px solid var(--border);border-radius:var(--radius-sm);
-  background:var(--bg-soft);font-size:12.5px;outline:none
-}
-.search input:focus{border-color:var(--accent)}
-.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text-3)}
-.iconbtn{
-  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
-  border:1px solid var(--border);background:var(--panel-2);border-radius:var(--radius-sm);
-  color:var(--text-2);transition:var(--transition)
-}
-.iconbtn:hover{background:var(--panel-3);color:var(--text)}
-.iconbtn svg{width:15px;height:15px}
-.content{flex:1;overflow:auto;padding:22px 24px 60px}
+.content{flex:1;overflow:auto;padding:20px 22px 50px}
+.phead{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.phead h2{font-family:var(--font-display);font-size:22px;font-weight:600;line-height:1.1}
+.phead .sub{font-size:12px;color:var(--text-3)}
+.phead .grow{flex:1}
 
 /* ============================================================
-   CARTÕES / TABELAS
+   FAIXA DE NÚMEROS
    ============================================================ */
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:13px;margin-bottom:22px}
-.stat{
-  background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
-  padding:15px 17px;cursor:pointer;transition:var(--transition);position:relative;overflow:hidden
-}
-.stat:hover{border-color:var(--text-3);transform:translateY(-1px);box-shadow:var(--shadow-sm)}
-.stat .bar{position:absolute;left:0;top:0;bottom:0;width:3px}
-.stat .lbl{font-size:10.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:7px}
-.stat .val{font-family:var(--font-display);font-size:30px;font-weight:700;line-height:1}
-.stat .sub{font-size:11.5px;color:var(--text-3);margin-top:6px}
+.strip{display:flex;background:var(--panel);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;margin-bottom:18px;flex-wrap:wrap}
+.strip .s{flex:1;min-width:148px;padding:13px 17px;border-right:1px solid var(--border-soft);
+  cursor:pointer;transition:var(--t)}
+.strip .s:last-child{border-right:none}
+.strip .s:hover{background:var(--panel-2)}
+.strip .s .k{font-size:9.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;
+  letter-spacing:1.1px;margin-bottom:5px}
+.strip .s .v{font-family:var(--font-display);font-size:27px;font-weight:600;line-height:1}
+.strip .s .d{font-size:11px;color:var(--text-3);margin-top:3px}
+.strip .s.alerta .v{color:var(--alert)}
+.strip .s.bronze .v{color:var(--accent-deep)}
 
-.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px}
-.card > .head{
-  display:flex;align-items:center;gap:10px;padding:13px 17px;border-bottom:1px solid var(--border-soft);background:var(--panel-2)
+/* ============================================================
+   QUADRO DE COLUNAS
+   ============================================================ */
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;align-items:start}
+@media(max-width:1080px){
+  .board{display:flex;overflow-x:auto;padding-bottom:12px}
+  .board .col{min-width:272px;flex:none}
 }
-.card > .head h3{font-family:var(--font-display);font-size:14.5px;font-weight:700}
-.card > .head .n{font-size:11px;font-weight:700;color:var(--text-3);background:var(--panel-3);padding:1px 8px;border-radius:10px}
-.card > .head .spacer{flex:1}
-.card > .body{padding:15px 17px}
-.card > .body.flush{padding:0}
+.col{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:var(--r);
+  display:flex;flex-direction:column;transition:var(--t)}
+.col.over{border-color:var(--accent);background:var(--accent-soft)}
+.col > .ch{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border-soft)}
+.col > .ch .pip{width:9px;height:9px;border-radius:2px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.col > .ch h3{font-family:var(--font-display);font-size:13.5px;font-weight:600;flex:1}
+.col > .ch .n{font-size:11px;font-weight:700;color:var(--text-3);background:var(--panel-3);
+  padding:1px 8px;border-radius:9px}
+.col > .cb{padding:10px;display:flex;flex-direction:column;gap:9px;min-height:110px;
+  max-height:calc(100vh - 300px);overflow:auto}
+.col .vazio{padding:22px 10px;text-align:center;font-size:11.5px;color:var(--text-3);
+  border:1.5px dashed var(--border);border-radius:var(--r-sm)}
 
-.cols2{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
-@media(max-width:1100px){.cols2{grid-template-columns:1fr}}
+.kc{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--border);
+  border-radius:var(--r-sm);padding:11px 12px;cursor:grab;transition:var(--t);box-shadow:var(--shadow-sm)}
+.kc:hover{border-color:var(--accent);border-left-color:var(--accent);transform:translateY(-1px)}
+.kc:active{cursor:grabbing}
+.kc.dragging{opacity:.35}
+.kc.urg,.kc.atr{border-left-color:var(--alert)}
+.kc .r1{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.kc .cod{font-family:var(--font-mono);font-size:10px;color:var(--text-3);letter-spacing:.3px}
+.kc .r1 .grow{flex:1}
+.kc .t{font-size:13.2px;font-weight:600;line-height:1.3;margin-bottom:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kc .s{font-size:11.5px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kc .r2{display:flex;align-items:center;gap:5px;margin-top:9px;padding-top:9px;
+  border-top:1px solid var(--border-soft);flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;
+  padding:2px 7px;border-radius:4px;background:var(--panel-3);color:var(--text-2)}
+.chip.doc{background:var(--accent-soft);color:var(--accent-deep)}
+.chip.ok{background:var(--done-soft);color:var(--text)}
+.chip.al{background:var(--alert-soft);color:var(--alert)}
+
+/* ============================================================
+   CARTÕES, TABELAS, LISTAS
+   ============================================================ */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;margin-bottom:18px}
+.card > .ch{display:flex;align-items:center;gap:10px;padding:13px 17px;border-bottom:1px solid var(--border-soft)}
+.card > .ch h3{font-family:var(--font-display);font-size:15px;font-weight:600}
+.card > .ch .n{font-size:11px;font-weight:700;color:var(--text-3);background:var(--panel-3);padding:1px 8px;border-radius:9px}
+.card > .ch .grow{flex:1}
+.card > .cb{padding:16px 17px}
+.card > .cb.flush{padding:0}
 
 table{width:100%;border-collapse:collapse}
-thead th{
-  text-align:left;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.9px;
-  padding:9px 14px;border-bottom:1px solid var(--border);background:var(--panel-2);white-space:nowrap;position:sticky;top:0;z-index:1
-}
-tbody td{padding:10px 14px;border-bottom:1px solid var(--border-soft);font-size:12.8px;vertical-align:middle}
-tbody tr{transition:background var(--transition);cursor:pointer}
+thead th{text-align:left;font-size:9.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;
+  letter-spacing:1px;padding:10px 15px;background:var(--panel-2);border-bottom:1px solid var(--border);
+  white-space:nowrap;position:sticky;top:0;z-index:1}
+tbody td{padding:11px 15px;border-bottom:1px solid var(--border-soft);font-size:12.8px;vertical-align:middle}
+tbody tr{cursor:pointer;transition:var(--t)}
 tbody tr:hover{background:var(--panel-2)}
 tbody tr:last-child td{border-bottom:none}
 td .strong{font-weight:600}
 td .dim{color:var(--text-3);font-size:11.5px}
-.mono{font-family:var(--font-mono);font-size:11.5px;color:var(--text-3)}
-
-.fila{list-style:none}
-.fila li{
-  display:flex;align-items:center;gap:12px;padding:11px 17px;border-bottom:1px solid var(--border-soft);
-  cursor:pointer;transition:var(--transition)
-}
-.fila li:last-child{border-bottom:none}
-.fila li:hover{background:var(--panel-2)}
-.fila .pri{width:3px;align-self:stretch;border-radius:3px;background:var(--border);flex:none}
-.fila .pri.urg{background:var(--red)}
-.fila .pri.atr{background:var(--orange)}
-.fila .info{flex:1;min-width:0}
-.fila .info .t{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fila .info .s{font-size:11.5px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-.fila .right{display:flex;align-items:center;gap:8px;flex:none}
-
-.empty{padding:38px 20px;text-align:center;color:var(--text-3)}
-.empty .big{font-size:30px;margin-bottom:8px;opacity:.5}
-.empty p{font-size:12.5px;max-width:320px;margin:0 auto 14px}
+.mono{font-family:var(--font-mono);font-size:11px;color:var(--text-3)}
 
 .filters{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
-.filters select,.filters input{
-  padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);
-  background:var(--panel);font-size:12.3px;outline:none
-}
+.filters select,.filters input{padding:7px 11px;border:1px solid var(--border);border-radius:var(--r-sm);
+  background:var(--panel);font-size:12.3px;outline:none;transition:var(--t)}
 .filters select:focus,.filters input:focus{border-color:var(--accent)}
-.filters .spacer{flex:1}
+.filters .grow{flex:1}
 
-.clientgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:14px}
-.clientcard{
-  background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;
-  cursor:pointer;transition:var(--transition);position:relative;overflow:hidden
-}
-.clientcard:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-sm)}
-.clientcard .bar{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
-.clientcard h4{font-family:var(--font-display);font-size:14.5px;font-weight:700;margin-bottom:3px;padding-left:4px}
-.clientcard .meta{font-size:11.5px;color:var(--text-3);margin-bottom:12px;padding-left:4px}
-.clientcard .nums{display:flex;gap:8px;flex-wrap:wrap;padding-left:4px}
-.clientcard .num{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--panel-3);color:var(--text-2)}
-.clientcard .num.o{background:var(--orange-soft);color:var(--orange)}
-.clientcard .num.g{background:var(--green-soft);color:var(--green)}
-.clientcard .num.r{background:var(--red-soft);color:var(--red)}
+.grid-cli{display:grid;grid-template-columns:repeat(auto-fill,minmax(262px,1fr));gap:14px}
+.cli{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);
+  cursor:pointer;transition:var(--t);overflow:hidden}
+.cli:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.cli .top{background:var(--ink);color:var(--bone);padding:13px 15px}
+.cli .top h4{font-family:var(--font-display);font-size:15px;font-weight:600;line-height:1.25}
+.cli .top .m{font-size:10px;color:rgba(255,255,253,.55);text-transform:uppercase;letter-spacing:1.1px;margin-top:4px}
+.cli .bot{padding:13px 15px;display:flex;gap:7px;flex-wrap:wrap}
+
+.empty{padding:40px 20px;text-align:center;color:var(--text-3)}
+.empty .mk{font-family:var(--font-display);font-size:30px;color:var(--accent);opacity:.55;margin-bottom:8px;letter-spacing:2px}
+.empty p{font-size:12.5px;max-width:330px;margin:0 auto 14px}
 
 /* ============================================================
    MODAIS
    ============================================================ */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);z-index:8000;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:36px 18px}
+.overlay{position:fixed;inset:0;background:rgba(24,25,22,.62);backdrop-filter:blur(3px);z-index:8000;
+  display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:34px 16px}
 .overlay.on{display:flex}
-.modal{
-  background:var(--panel);border:1px solid var(--border);border-radius:13px;width:100%;max-width:560px;
-  box-shadow:var(--shadow);animation:gateIn .3s cubic-bezier(.16,1,.3,1) backwards;margin:auto
-}
-.modal.lg{max-width:760px}
-.modal .m-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border-soft)}
-.modal .m-head h3{font-family:var(--font-display);font-size:16px;font-weight:700;flex:1}
-.modal .m-body{padding:18px 20px;max-height:66vh;overflow:auto}
-.modal .m-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border-soft)}
-.modal .m-foot .spacer{flex:1}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.grid2 .full{grid-column:1/-1}
-@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+.modal{background:var(--panel);border-radius:var(--r);width:100%;max-width:560px;
+  box-shadow:var(--shadow);animation:up .3s cubic-bezier(.16,1,.3,1) backwards;margin:auto;overflow:hidden}
+.modal.lg{max-width:780px}
+.modal .mh{display:flex;align-items:center;gap:11px;padding:16px 20px;background:var(--ink);color:var(--bone)}
+.modal .mh h3{font-family:var(--font-display);font-size:16.5px;font-weight:600;flex:1;line-height:1.25}
+.modal .mh .x{width:28px;height:28px;border:none;background:rgba(255,255,253,.12);border-radius:6px;
+  color:var(--bone);font-size:14px;display:flex;align-items:center;justify-content:center;flex:none}
+.modal .mh .x:hover{background:rgba(255,255,253,.24)}
+.modal .mb{padding:18px 20px;max-height:64vh;overflow:auto}
+.modal .mf{display:flex;justify-content:flex-end;gap:9px;padding:14px 20px;
+  border-top:1px solid var(--border-soft);background:var(--panel-2);flex-wrap:wrap}
+.modal .mf .grow{flex:1}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.g2 .full{grid-column:1/-1}
+@media(max-width:620px){.g2{grid-template-columns:1fr}}
 
-.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:13px;margin-bottom:18px}
-.kv .k{font-size:9.8px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:3px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:14px;margin-bottom:20px}
+.kv .k{font-size:9.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
 .kv .v{font-size:13px;font-weight:500}
-.kv .v.empty-v{color:var(--text-3);font-weight:400;font-style:italic}
+.kv .v.nao{color:var(--text-3);font-weight:400;font-style:italic}
 
-.sec{margin-bottom:20px}
-.sec > .st{
-  font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;
-  padding-bottom:7px;margin-bottom:11px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;gap:8px
-}
-.sec > .st .spacer{flex:1}
+.sec{margin-bottom:22px}
+.sec > .st{font-size:9.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1.2px;
+  padding-bottom:8px;margin-bottom:12px;border-bottom:1px solid var(--border-soft);
+  display:flex;align-items:center;gap:8px}
+.sec > .st .grow{flex:1}
+.sec.destaque{background:var(--panel-2);border-left:3px solid var(--accent);border-radius:var(--r-sm);
+  padding:15px 16px}
+.sec.destaque > .st{border-bottom-color:var(--border);color:var(--accent-deep)}
 
-.dropzone{
-  border:1.5px dashed var(--border);border-radius:var(--radius);padding:16px;text-align:center;
-  transition:var(--transition);background:var(--bg-soft);cursor:pointer
-}
-.dropzone:hover,.dropzone.drag{border-color:var(--accent);background:var(--accent-soft)}
-.dropzone .t{font-size:12.5px;font-weight:600;margin-bottom:3px}
-.dropzone .s{font-size:11px;color:var(--text-3)}
+.dz{border:1.5px dashed var(--border);border-radius:var(--r-sm);padding:17px;text-align:center;
+  transition:var(--t);background:var(--panel-2);cursor:pointer}
+.dz:hover,.dz.drag{border-color:var(--accent);background:var(--accent-soft)}
+.dz .t{font-size:12.8px;font-weight:600;margin-bottom:3px}
+.dz .s{font-size:11px;color:var(--text-3)}
 
-.filelist{list-style:none;margin-top:10px}
-.filelist li{
-  display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border-soft);
-  border-radius:var(--radius-sm);margin-bottom:7px;background:var(--bg-soft)
-}
-.filelist .fi{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;background:var(--panel-3);color:var(--text-2);flex:none;font-size:9px;font-weight:700}
-.filelist .fn{flex:1;min-width:0;display:flex;flex-direction:column}
-.filelist .fn .n{font-size:12.3px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.filelist .fn .m{font-size:10.5px;color:var(--text-3)}
-.filelist .atual{border-color:color-mix(in srgb,var(--green) 45%,transparent);background:var(--green-soft)}
+.files{list-style:none}
+.files li{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--border-soft);
+  border-radius:var(--r-sm);margin-bottom:7px;background:var(--panel-2)}
+.files .ic{width:30px;height:30px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+  background:var(--ink);color:var(--bone);flex:none;font-size:8.5px;font-weight:700;letter-spacing:.3px}
+.files .nm{flex:1;min-width:0;display:flex;flex-direction:column}
+.files .nm .n{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.files .nm .m{font-size:10.5px;color:var(--text-3)}
+.files li.atual{border-color:var(--accent);background:var(--accent-soft)}
+.files li.atual .ic{background:var(--accent);color:var(--accent-text)}
 
-.timeline{list-style:none;position:relative;padding-left:16px}
-.timeline:before{content:"";position:absolute;left:4px;top:5px;bottom:5px;width:1px;background:var(--border)}
-.timeline li{position:relative;padding-bottom:12px;font-size:12.3px}
-.timeline li:before{content:"";position:absolute;left:-15px;top:5px;width:7px;height:7px;border-radius:50%;background:var(--accent);border:2px solid var(--panel)}
-.timeline .w{font-size:10.5px;color:var(--text-3);margin-top:1px}
+.tl{list-style:none;position:relative;padding-left:17px}
+.tl:before{content:"";position:absolute;left:4px;top:6px;bottom:6px;width:1px;background:var(--border)}
+.tl li{position:relative;padding-bottom:13px;font-size:12.3px}
+.tl li:before{content:"";position:absolute;left:-16px;top:5px;width:7px;height:7px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 0 2.5px var(--panel)}
+.tl .w{font-size:10.5px;color:var(--text-3);margin-top:2px}
 
 #toasts{position:fixed;bottom:20px;right:20px;z-index:9500;display:flex;flex-direction:column;gap:9px;align-items:flex-end}
-.toast{
-  background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);
-  border-radius:var(--radius-sm);padding:11px 15px;font-size:12.5px;font-weight:500;
-  box-shadow:var(--shadow);max-width:340px;animation:gateIn .3s backwards
-}
-.toast.ok{border-left-color:var(--green)}
-.toast.err{border-left-color:var(--red)}
+.toast{background:var(--ink);color:var(--bone);border-left:3px solid var(--bronze);border-radius:var(--r-sm);
+  padding:11px 16px;font-size:12.5px;font-weight:500;box-shadow:var(--shadow);max-width:340px;animation:up .3s backwards}
+.toast.err{border-left-color:var(--alert)}
 
-#loading{position:fixed;inset:0;background:var(--bg);z-index:9200;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#loading{position:fixed;inset:0;background:var(--bg);z-index:9200;display:none;
+  align-items:center;justify-content:center;flex-direction:column;gap:15px}
 #loading.on{display:flex}
-.spinner{width:28px;height:28px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+.spin{width:30px;height:30px;border:2.5px solid var(--border);border-top-color:var(--accent);
+  border-radius:50%;animation:rot .7s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
 #loading .t{font-size:12.5px;color:var(--text-3)}
+
+@media(max-width:860px){
+  .topbar{padding:0 14px;gap:6px}
+  .topbar .brand .nm,.topbar .brand .sb{display:none}
+  .topbar .brand{padding-right:10px;margin-right:0}
+  .tsearch{width:140px}
+  .who .em{display:none}
+  .tab{padding:0 10px;font-size:12.5px}
+  .content{padding:16px 16px 44px}
+  .phead h2{font-size:19px}
+}
 </style>
 </head>
 <body>
 
-<!-- ============================================================
-     TELA 1 — CONFIGURAÇÃO DO BANCO
-     ============================================================ -->
+<!-- ============ CONFIGURAÇÃO ============ -->
 <div class="gate" id="setup-screen">
   <div class="box wide">
-    <div class="brandrow"><div class="mark">D</div><h1>Controle de Distratos</h1></div>
+    <img src="logo.png" alt="" class="crest">
+    <h1>Controle de Distratos</h1>
     <div class="sub">Configuração inicial</div>
+    <div class="rule"></div>
     <div class="helpbox">
-      Para o sistema funcionar, informe os dados do seu projeto no Supabase.<br><br>
-      No painel do Supabase vá em <b>Project Settings → API</b> e copie:<br>
-      • <b>Project URL</b> (algo como https://xxxx.supabase.co)<br>
-      • a chave <b>anon / public</b><br><br>
-      Antes disso, rode o arquivo <b>schema_supabase.sql</b> em <b>SQL Editor → New query</b>.
+      Informe os dados do projeto no Supabase.<br><br>
+      No painel do Supabase: <b>Project Settings → API</b>, e copie a <b>Project URL</b>
+      e a chave <b>anon / publishable</b>.<br><br>
+      Antes disso, rode o <b>schema_supabase.sql</b> em <b>SQL Editor → New query</b>.
     </div>
-    <div class="fg">
-      <label>Project URL</label>
-      <input type="text" id="cfg-url" placeholder="https://xxxxxxxx.supabase.co" autocomplete="off">
-    </div>
-    <div class="fg">
-      <label>Chave anon / public</label>
-      <input type="text" id="cfg-key" placeholder="eyJhbGciOi... ou sb_publishable_..." autocomplete="off">
-      <div class="hint">Essa chave é pública por natureza — quem protege os dados é o login e as regras de acesso do banco.</div>
-    </div>
+    <div class="fg"><label>Project URL</label>
+      <input type="text" id="cfg-url" placeholder="https://xxxxxxxx.supabase.co" autocomplete="off"></div>
+    <div class="fg"><label>Chave anon / publishable</label>
+      <input type="text" id="cfg-key" placeholder="sb_publishable_... ou eyJhbGciOi..." autocomplete="off">
+      <div class="hint">Essa chave é pública por natureza — quem protege os dados é o login e as regras do banco.</div></div>
     <div class="err" id="cfg-err"></div>
     <button class="btn primary full" id="cfg-save">Salvar e conectar</button>
   </div>
 </div>
 
-<!-- ============================================================
-     TELA 2 — LOGIN
-     ============================================================ -->
+<!-- ============ LOGIN ============ -->
 <div class="gate" id="login-screen">
   <div class="box">
-    <div class="brandrow"><div class="mark">D</div><h1>Controle de Distratos</h1></div>
+    <img src="logo.png" alt="" class="crest">
+    <h1>Controle de Distratos</h1>
     <div class="sub">Prazos extrajudiciais</div>
+    <div class="rule"></div>
     <form id="login-form">
-      <div class="fg">
-        <label>E-mail</label>
-        <input type="email" id="login-email" autocomplete="username" required>
-      </div>
-      <div class="fg">
-        <label>Senha</label>
-        <input type="password" id="login-pass" autocomplete="current-password" required>
-      </div>
+      <div class="fg"><label>E-mail</label><input type="email" id="login-email" autocomplete="username" required></div>
+      <div class="fg"><label>Senha</label><input type="password" id="login-pass" autocomplete="current-password" required></div>
       <div class="err" id="login-err"></div>
       <button type="submit" class="btn primary full" id="login-btn">Entrar</button>
     </form>
@@ -399,45 +398,34 @@ td .dim{color:var(--text-3);font-size:11.5px}
   </div>
 </div>
 
-<!-- ============================================================
-     CARREGANDO
-     ============================================================ -->
-<div id="loading"><div class="spinner"></div><div class="t" id="loading-txt">Carregando…</div></div>
+<div id="loading"><div class="spin"></div><div class="t" id="loading-txt">Carregando…</div></div>
 
-<!-- ============================================================
-     APLICAÇÃO
-     ============================================================ -->
+<!-- ============ APLICAÇÃO ============ -->
 <div id="app">
-  <aside class="sidebar">
-    <div class="top">
-      <div class="brandrow"><div class="mark">D</div><h1>Distratos</h1></div>
-      <div class="tag">Prazos extrajudiciais</div>
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.png" alt="Leilton Costa Advocacia">
+      <div><div class="nm">Controle de Distratos</div><div class="sb">Leilton Costa Advocacia</div></div>
     </div>
-    <nav id="nav"></nav>
-    <div class="foot">
-      <div class="who" id="who"></div>
-      <button class="btn sm full" id="btn-sair">Sair</button>
+    <nav class="tabs" id="tabs"></nav>
+    <div class="grow"></div>
+    <div class="tsearch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="busca" placeholder="Buscar adquirente, lote…">
     </div>
-  </aside>
-
-  <div class="main">
-    <header class="topbar">
-      <h2 id="page-title">Painel</h2>
-      <div class="spacer"></div>
-      <div class="search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input type="text" id="busca" placeholder="Buscar adquirente, lote, contrato…">
-      </div>
-      <button class="iconbtn" id="btn-reload" title="Atualizar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
-      </button>
-      <button class="iconbtn" id="btn-tema" title="Tema claro/escuro">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
-      </button>
-      <button class="btn primary" id="btn-novo">+ Novo distrato</button>
-    </header>
-    <div class="content" id="content"></div>
-  </div>
+    <button class="tbtn" id="btn-reload" title="Atualizar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
+    <button class="tbtn" id="btn-tema" title="Tema claro/escuro">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
+    <button class="btn primary" id="btn-novo">+ Novo distrato</button>
+    <div class="who">
+      <div class="av" id="av"></div>
+      <div class="em" id="em"></div>
+      <button class="tbtn" id="btn-sair" title="Sair">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
+    </div>
+  </header>
+  <div class="content" id="content"></div>
 </div>
 
 <div class="overlay" id="overlay"></div>
@@ -445,18 +433,17 @@ td .dim{color:var(--text-3);font-size:11.5px}
 
 <script>
 /* ============================================================================
-   CONTROLE DE DISTRATOS — Prazos extrajudiciais (loteamentos)
-   Arquivo único. Dados e arquivos no Supabase.
+   CONTROLE DE DISTRATOS — Leilton Costa Advocacia
+   Prazos extrajudiciais dos loteamentos. Arquivo único, dados no Supabase.
    ============================================================================ */
 
-/* Opcional: preencha aqui para não precisar configurar em cada navegador. */
 const SUPABASE_URL      = "https://ybohudryuadtcifpuwsj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_TgW_-FfV6Pos_NZULu3yiQ_GNWKcnmm";
 
-const LS_CFG   = "distratos.cfg";
-const LS_TEMA  = "distratos.tema";
-const BUCKET   = "distratos";
-const MAX_MB   = 25;
+const LS_CFG  = "distratos.cfg";
+const LS_TEMA = "distratos.tema";
+const BUCKET  = "distratos";
+const MAX_MB  = 25;
 
 const STATUS = ["A corrigir", "Em correção", "Corrigido", "Finalizado"];
 const TIPOS  = ["Distrato", "Notificação extrajudicial", "Rescisão", "Aditivo", "Outro"];
@@ -464,13 +451,8 @@ const TIPOS_CLIENTE = ["Loteamento", "Construtora", "Imobiliária", "Incorporado
 
 let sb = null;
 const State = {
-  user: null,
-  clientes: [],
-  distratos: [],
-  view: "painel",
-  clienteAberto: null,
-  busca: "",
-  filtro: { cliente: "", status: "", tipo: "", prazo: "" }
+  user:null, clientes:[], distratos:[], view:"painel", clienteAberto:null,
+  busca:"", filtro:{ cliente:"", status:"", tipo:"", prazo:"" }
 };
 
 /* ============================================================================
@@ -504,49 +486,47 @@ function diasAte(iso){
   const b = new Date(String(iso).slice(0,10) + "T00:00:00");
   return Math.round((b - a) / 86400000);
 }
-function fmtTam(bytes){
-  if (!bytes && bytes !== 0) return "";
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1048576) return (bytes/1024).toFixed(0) + " KB";
-  return (bytes/1048576).toFixed(1) + " MB";
+function fmtTam(b){
+  if (!b && b !== 0) return "";
+  if (b < 1024) return b + " B";
+  if (b < 1048576) return (b/1024).toFixed(0) + " KB";
+  return (b/1048576).toFixed(1) + " MB";
 }
-function slugFile(nome){
-  return String(nome).normalize("NFD").replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-zA-Z0-9._-]/g, "_").replace(/_+/g, "_").slice(-80);
+function slugFile(n){
+  return String(n).normalize("NFD").replace(/[̀-ͯ]/g,"")
+    .replace(/[^a-zA-Z0-9._-]/g,"_").replace(/_+/g,"_").slice(-80);
 }
-function statusClasse(s){
-  return { "A corrigir":"s-corrigir", "Em correção":"s-emcorrecao", "Corrigido":"s-corrigido", "Finalizado":"s-finalizado" }[s] || "ok";
+function classeStatus(s){
+  return { "A corrigir":"t-corrigir","Em correção":"t-emcorrecao","Corrigido":"t-corrigido","Finalizado":"t-finalizado" }[s] || "t-finalizado";
 }
-function badgeStatus(s){
-  return '<span class="badge ' + statusClasse(s) + '"><span class="dot"></span>' + esc(s) + '</span>';
+function tagStatus(s){ return '<span class="tag ' + classeStatus(s) + '">' + esc(s) + '</span>'; }
+function corStatus(s){
+  return { "A corrigir":"var(--accent)","Em correção":"var(--accent-soft)",
+           "Corrigido":"var(--done)","Finalizado":"var(--text-3)" }[s] || "var(--border)";
 }
-function badgePrazo(d){
-  if (!d.prazo) return '<span class="badge ok">sem prazo</span>';
-  if (d.status === "Corrigido" || d.status === "Finalizado") return '<span class="badge ok">' + fmtData(d.prazo) + '</span>';
+function chipPrazo(d){
+  if (!d.prazo) return '<span class="chip">sem prazo</span>';
+  if (d.status === "Corrigido" || d.status === "Finalizado")
+    return '<span class="chip">' + fmtData(d.prazo) + '</span>';
   const n = diasAte(d.prazo);
-  if (n < 0)  return '<span class="badge atraso">' + Math.abs(n) + 'd em atraso</span>';
-  if (n === 0) return '<span class="badge hoje">vence hoje</span>';
-  if (n <= 2) return '<span class="badge hoje">em ' + n + 'd</span>';
-  return '<span class="badge ok">' + fmtData(d.prazo) + '</span>';
+  if (n < 0)   return '<span class="chip al">' + Math.abs(n) + 'd em atraso</span>';
+  if (n === 0) return '<span class="chip al">vence hoje</span>';
+  if (n <= 2)  return '<span class="chip al">em ' + n + 'd</span>';
+  return '<span class="chip">' + fmtData(d.prazo) + '</span>';
 }
-function estaAtrasado(d){
-  return d.prazo && diasAte(d.prazo) < 0 && (d.status === "A corrigir" || d.status === "Em correção");
-}
+function estaAtrasado(d){ return d.prazo && diasAte(d.prazo) < 0 && (d.status === "A corrigir" || d.status === "Em correção"); }
 function pendente(d){ return d.status === "A corrigir" || d.status === "Em correção"; }
-function nomeCliente(id){
-  const c = State.clientes.find(x => x.id === id);
-  return c ? c.nome : "—";
-}
-function codigo(d){ return "DST-" + String(d.numero).padStart(4, "0"); }
+function nomeCliente(id){ const c = State.clientes.find(x => x.id === id); return c ? c.nome : "—"; }
+function codigo(d){ return "DST-" + String(d.numero).padStart(4,"0"); }
 function identificaLote(d){
   const p = [];
   if (d.quadra) p.push("Q" + d.quadra);
-  if (d.lote)   p.push("L" + d.lote);
+  if (d.lote) p.push("L" + d.lote);
   return p.join(" · ");
 }
 function ultimoArq(d, tipo){
   const l = (d.arquivos || []).filter(a => a.tipo === tipo);
-  return l.length ? l[l.length - 1] : null;
+  return l.length ? l[l.length-1] : null;
 }
 function quem(){ return (State.user && State.user.email) ? State.user.email.split("@")[0] : "sistema"; }
 
@@ -567,28 +547,25 @@ function carregando(on, txt){
    CONFIGURAÇÃO E LOGIN
    ============================================================================ */
 function lerCfg(){
-  if (SUPABASE_URL && SUPABASE_ANON_KEY) return { url: SUPABASE_URL, key: SUPABASE_ANON_KEY };
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) return { url:SUPABASE_URL, key:SUPABASE_ANON_KEY };
   try { return JSON.parse(localStorage.getItem(LS_CFG) || "null") || { url:"", key:"" }; }
   catch(e){ return { url:"", key:"" }; }
 }
 function telaSetup(erro){
-  $("#login-screen").classList.remove("on");
-  $("#app").classList.remove("on");
+  $("#login-screen").classList.remove("on"); $("#app").classList.remove("on");
   $("#setup-screen").classList.add("on");
   const cfg = lerCfg();
-  $("#cfg-url").value = cfg.url || "";
-  $("#cfg-key").value = cfg.key || "";
+  $("#cfg-url").value = cfg.url || ""; $("#cfg-key").value = cfg.key || "";
   $("#cfg-err").textContent = erro || "";
 }
 function telaLogin(){
-  $("#setup-screen").classList.remove("on");
-  $("#app").classList.remove("on");
+  $("#setup-screen").classList.remove("on"); $("#app").classList.remove("on");
   $("#login-screen").classList.add("on");
   setTimeout(() => $("#login-email").focus(), 60);
 }
 
 $("#cfg-save").addEventListener("click", async () => {
-  const url = $("#cfg-url").value.trim().replace(/\/+$/, "");
+  const url = $("#cfg-url").value.trim().replace(/\/+$/,"");
   const key = $("#cfg-key").value.trim();
   if (!/^https?:\/\/.+/.test(url)) { $("#cfg-err").textContent = "A URL deve começar com https://"; return; }
   if (key.length < 20) { $("#cfg-err").textContent = "A chave parece incompleta."; return; }
@@ -597,42 +574,30 @@ $("#cfg-save").addEventListener("click", async () => {
   catch(e){ $("#cfg-err").textContent = "Não foi possível conectar com esses dados."; return; }
   $("#cfg-err").textContent = "Testando conexão…";
   const { error } = await cli.from("clientes").select("id").limit(1);
-  // 401/permissão = conexão certa, só falta logar. Tabela ausente = SQL não foi rodado.
   if (error && /does not exist|schema cache|relation/i.test(error.message)) {
-    $("#cfg-err").textContent = "Conectou, mas as tabelas não existem. Rode o schema_supabase.sql no SQL Editor.";
+    $("#cfg-err").textContent = "Conectou, mas as tabelas não existem. Rode o schema_supabase.sql.";
     return;
   }
   localStorage.setItem(LS_CFG, JSON.stringify({ url, key }));
-  sb = cli;
-  toast("Configuração salva.", "ok");
-  telaLogin();
+  sb = cli; toast("Configuração salva."); telaLogin();
 });
 $("#login-cfg").addEventListener("click", () => telaSetup());
 
-$("#login-form").addEventListener("submit", async (ev) => {
+$("#login-form").addEventListener("submit", async ev => {
   ev.preventDefault();
   const btn = $("#login-btn");
-  btn.disabled = true; btn.textContent = "Entrando…";
-  $("#login-err").textContent = "";
+  btn.disabled = true; btn.textContent = "Entrando…"; $("#login-err").textContent = "";
   const { data, error } = await sb.auth.signInWithPassword({
-    email: $("#login-email").value.trim(),
-    password: $("#login-pass").value
-  });
+    email: $("#login-email").value.trim(), password: $("#login-pass").value });
   btn.disabled = false; btn.textContent = "Entrar";
   if (error) {
     $("#login-err").textContent = /invalid/i.test(error.message) ? "E-mail ou senha incorretos." : error.message;
     return;
   }
-  State.user = data.user;
-  $("#login-pass").value = "";
+  State.user = data.user; $("#login-pass").value = "";
   await iniciarApp();
 });
-
-$("#btn-sair").addEventListener("click", async () => {
-  await sb.auth.signOut();
-  State.user = null;
-  location.reload();
-});
+$("#btn-sair").addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); });
 
 /* ============================================================================
    DADOS
@@ -644,25 +609,16 @@ async function carregarTudo(){
   ]);
   if (rc.error) throw rc.error;
   if (rd.error) throw rd.error;
-  State.clientes  = rc.data || [];
-  State.distratos = rd.data || [];
+  State.clientes = rc.data || []; State.distratos = rd.data || [];
 }
 async function recarregar(silencioso){
-  try {
-    await carregarTudo();
-    render();
-    if (!silencioso) toast("Dados atualizados.", "ok");
-  } catch(e){ toast("Erro ao carregar: " + e.message, "err"); }
+  try { await carregarTudo(); render(); if (!silencioso) toast("Dados atualizados."); }
+  catch(e){ toast("Erro ao carregar: " + e.message, "err"); }
 }
 function addHistorico(d, texto){
   const h = Array.isArray(d.historico) ? d.historico.slice() : [];
   const agora = new Date();
-  h.push({
-    data: hojeISO(),
-    hora: agora.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }),
-    quem: quem(),
-    texto: texto
-  });
+  h.push({ data:hojeISO(), hora:agora.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}), quem:quem(), texto:texto });
   return h;
 }
 async function atualizarDistrato(id, patch){
@@ -681,43 +637,28 @@ async function enviarArquivo(distrato, file, tipo){
   carregando(true, "Enviando " + file.name + "…");
   try {
     const path = distrato.id + "/" + tipo + "-" + Date.now() + "-" + slugFile(file.name);
-    const up = await sb.storage.from(BUCKET).upload(path, file, { upsert:false, contentType: file.type || undefined });
+    const up = await sb.storage.from(BUCKET).upload(path, file, { upsert:false, contentType:file.type || undefined });
     if (up.error) throw up.error;
-
     const arquivos = (Array.isArray(distrato.arquivos) ? distrato.arquivos.slice() : []);
-    arquivos.push({
-      id: path, tipo: tipo, path: path, nome: file.name,
-      tamanho: file.size, enviado_em: new Date().toISOString(), enviado_por: quem()
-    });
-
-    const patch = {
-      arquivos: arquivos,
-      historico: addHistorico(distrato,
-        (tipo === "original" ? "Minuta anexada: " : "Versão corrigida anexada: ") + file.name)
-    };
-
-    // Anexar o corrigido marca o distrato como corrigido automaticamente.
+    arquivos.push({ id:path, tipo:tipo, path:path, nome:file.name, tamanho:file.size,
+                    enviado_em:new Date().toISOString(), enviado_por:quem() });
+    const patch = { arquivos:arquivos,
+      historico: addHistorico(distrato, (tipo === "original" ? "Minuta anexada: " : "Versão corrigida anexada: ") + file.name) };
     if (tipo === "corrigido" && distrato.status !== "Finalizado") {
       patch.status = "Corrigido";
       patch.corrigido_em = new Date().toISOString();
       patch.corrigido_por = quem();
-      if (distrato.status !== "Corrigido") {
-        patch.historico = addHistorico({ historico: patch.historico }, 'Status alterado para "Corrigido".');
-      }
+      if (distrato.status !== "Corrigido")
+        patch.historico = addHistorico({ historico:patch.historico }, 'Situação alterada para "Corrigido".');
     }
     const novo = await atualizarDistrato(distrato.id, patch);
-    carregando(false);
-    toast("Arquivo anexado.", "ok");
-    render();
+    carregando(false); toast("Arquivo anexado."); render();
     if ($("#overlay").classList.contains("on")) abrirDistrato(novo.id);
-  } catch(e){
-    carregando(false);
-    toast("Falha no envio: " + e.message, "err");
-  }
+  } catch(e){ carregando(false); toast("Falha no envio: " + e.message, "err"); }
 }
 async function baixarArquivo(arq){
   try {
-    const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(arq.path, 120, { download: arq.nome });
+    const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(arq.path, 120, { download:arq.nome });
     if (error) throw error;
     window.open(data.signedUrl, "_blank");
   } catch(e){ toast("Não foi possível baixar: " + e.message, "err"); }
@@ -727,13 +668,9 @@ async function apagarArquivo(distrato, arq){
   try {
     await sb.storage.from(BUCKET).remove([arq.path]);
     const arquivos = (distrato.arquivos || []).filter(a => a.path !== arq.path);
-    const novo = await atualizarDistrato(distrato.id, {
-      arquivos: arquivos,
-      historico: addHistorico(distrato, "Arquivo removido: " + arq.nome)
-    });
-    toast("Arquivo removido.", "ok");
-    render();
-    abrirDistrato(novo.id);
+    const novo = await atualizarDistrato(distrato.id, { arquivos:arquivos,
+      historico: addHistorico(distrato, "Arquivo removido: " + arq.nome) });
+    toast("Arquivo removido."); render(); abrirDistrato(novo.id);
   } catch(e){ toast("Erro: " + e.message, "err"); }
 }
 
@@ -753,16 +690,16 @@ function distratosFiltrados(){
     if (f.prazo === "semana") { const n = diasAte(d.prazo); if (n === null || n < 0 || n > 7) return false; }
     if (f.prazo === "vencidos" && !estaAtrasado(d)) return false;
     if (b) {
-      const alvo = [d.adquirente, d.contrato, d.quadra, d.lote, d.empreendimento, d.cpf_adquirente,
-                    d.responsavel, d.observacoes, codigo(d), nomeCliente(d.cliente_id)]
-                   .filter(Boolean).join(" ").toLowerCase();
+      const alvo = [d.adquirente,d.contrato,d.quadra,d.lote,d.empreendimento,d.cpf_adquirente,
+                    d.responsavel,d.observacoes,codigo(d),nomeCliente(d.cliente_id)]
+                    .filter(Boolean).join(" ").toLowerCase();
       if (!alvo.includes(b)) return false;
     }
     return true;
   });
 }
 function ordenaFila(lista){
-  return lista.slice().sort((a, b) => {
+  return lista.slice().sort((a,b) => {
     if ((a.prioridade === "Urgente") !== (b.prioridade === "Urgente")) return a.prioridade === "Urgente" ? -1 : 1;
     if (!a.prazo && b.prazo) return 1;
     if (a.prazo && !b.prazo) return -1;
@@ -774,222 +711,180 @@ function ordenaFila(lista){
 /* ============================================================================
    NAVEGAÇÃO
    ============================================================================ */
-const ICONES = {
-  painel:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>',
-  distratos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 15l2 2 4-4"/></svg>',
-  clientes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l6-4 6 4v13"/><path d="M15 21V11l6 4v6"/><path d="M9 21v-5h3v5"/></svg>',
-  fila:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
-  alerta:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
-  ok:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.1V12a10 10 0 11-5.9-9.1"/><path d="M22 4L12 14l-3-3"/></svg>'
-};
 function irPara(view, extra){
   State.view = view;
   if (view === "cliente") State.clienteAberto = extra;
   render();
   $("#content").scrollTop = 0;
 }
-function renderNav(){
-  const aCorrigir = State.distratos.filter(d => d.status === "A corrigir").length;
-  const emCorr    = State.distratos.filter(d => d.status === "Em correção").length;
-  const corrigidos= State.distratos.filter(d => d.status === "Corrigido").length;
+function renderTabs(){
   const atrasados = State.distratos.filter(estaAtrasado).length;
-
-  const item = (id, ic, txt, n, cls, onclick) =>
-    '<button class="navitem ' + (cls || "") + '" data-go="' + id + '">' + ic +
-    '<span>' + txt + '</span>' +
-    (n !== null && n !== undefined ? '<span class="count' + (id === "f-atrasados" && n > 0 ? " alert" : "") + '">' + n + '</span>' : "") +
-    '</button>';
-
-  $("#nav").innerHTML =
-    item("painel", ICONES.painel, "Painel", null, State.view === "painel" ? "active" : "") +
-    item("distratos", ICONES.distratos, "Distratos", State.distratos.length, State.view === "distratos" ? "active" : "") +
-    item("clientes", ICONES.clientes, "Clientes", State.clientes.length, (State.view === "clientes" || State.view === "cliente") ? "active" : "") +
-    '<div class="navlabel">Filtros rápidos</div>' +
-    item("f-corrigir", ICONES.fila, "Para corrigir", aCorrigir) +
-    item("f-emcorrecao", ICONES.fila, "Em correção", emCorr) +
-    item("f-corrigidos", ICONES.ok, "Corrigidos", corrigidos) +
-    item("f-atrasados", ICONES.alerta, "Atrasados", atrasados);
-
-  $$("#nav .navitem").forEach(b => b.addEventListener("click", () => {
-    const id = b.dataset.go;
-    if (id === "painel" || id === "clientes") { State.filtro = { cliente:"", status:"", tipo:"", prazo:"" }; irPara(id); return; }
-    if (id === "distratos") { State.filtro = { cliente:"", status:"", tipo:"", prazo:"" }; irPara("distratos"); return; }
+  const aba = (id, txt, n, ativo, alerta) =>
+    '<button class="tab' + (ativo ? " active" : "") + '" data-tab="' + id + '">' + txt +
+    (n ? '<span class="n' + (alerta ? " al" : "") + '">' + n + '</span>' : "") + '</button>';
+  $("#tabs").innerHTML =
+    aba("painel", "Painel", atrasados, State.view === "painel", true) +
+    aba("distratos", "Distratos", State.distratos.length, State.view === "distratos") +
+    aba("clientes", "Clientes", State.clientes.length, State.view === "clientes" || State.view === "cliente");
+  $$("#tabs .tab").forEach(b => b.addEventListener("click", () => {
     State.filtro = { cliente:"", status:"", tipo:"", prazo:"" };
-    if (id === "f-corrigir")    State.filtro.status = "A corrigir";
-    if (id === "f-emcorrecao")  State.filtro.status = "Em correção";
-    if (id === "f-corrigidos")  State.filtro.status = "Corrigido";
-    if (id === "f-atrasados")   State.filtro.status = "__atrasados";
-    irPara("distratos");
+    irPara(b.dataset.tab);
   }));
 }
 
 /* ============================================================================
-   RENDER — PAINEL
+   PAINEL — quadro de colunas
    ============================================================================ */
+function cartao(d){
+  const orig = ultimoArq(d,"original"), corr = ultimoArq(d,"corrigido");
+  const cls = d.prioridade === "Urgente" ? "urg" : estaAtrasado(d) ? "atr" : "";
+  return '<div class="kc ' + cls + '" draggable="true" data-id="' + d.id + '">' +
+    '<div class="r1"><span class="cod">' + codigo(d) + '</span><span class="grow"></span>' +
+      (d.prioridade === "Urgente" ? '<span class="tag t-urg">urgente</span>' : "") + '</div>' +
+    '<div class="t">' + esc(d.adquirente || d.tipo_documento) + '</div>' +
+    '<div class="s">' + esc(nomeCliente(d.cliente_id)) +
+      (identificaLote(d) ? " · " + esc(identificaLote(d)) : "") + '</div>' +
+    '<div class="r2">' + chipPrazo(d) +
+      (orig ? '<span class="chip doc">minuta</span>' : "") +
+      (corr ? '<span class="chip ok">corrigido</span>' : "") +
+    '</div></div>';
+}
 function renderPainel(){
   const ds = State.distratos;
-  const aCorrigir  = ds.filter(d => d.status === "A corrigir");
-  const emCorrecao = ds.filter(d => d.status === "Em correção");
-  const corrigidos = ds.filter(d => d.status === "Corrigido");
-  const atrasados  = ds.filter(estaAtrasado);
-  const hoje       = ds.filter(d => pendente(d) && diasAte(d.prazo) === 0);
+  const n = s => ds.filter(d => d.status === s).length;
+  const atrasados = ds.filter(estaAtrasado);
+  const hoje = ds.filter(d => pendente(d) && diasAte(d.prazo) === 0);
 
-  const stat = (lbl, val, sub, cor, acao) =>
-    '<div class="stat" data-stat="' + acao + '"><div class="bar" style="background:var(--' + cor + ')"></div>' +
-    '<div class="lbl">' + lbl + '</div><div class="val" style="color:var(--' + cor + ')">' + val + '</div>' +
-    '<div class="sub">' + sub + '</div></div>';
+  const strip =
+    '<div class="strip">' +
+      '<div class="s bronze" data-f="A corrigir"><div class="k">Para corrigir</div><div class="v">' + n("A corrigir") + '</div><div class="d">aguardando o Dr. Leilton</div></div>' +
+      '<div class="s" data-f="Em correção"><div class="k">Em correção</div><div class="v">' + n("Em correção") + '</div><div class="d">já em análise</div></div>' +
+      '<div class="s" data-f="Corrigido"><div class="k">Corrigidos</div><div class="v">' + n("Corrigido") + '</div><div class="d">prontos para devolver</div></div>' +
+      '<div class="s alerta" data-f="__atrasados"><div class="k">Atrasados</div><div class="v">' + atrasados.length + '</div><div class="d">' + hoje.length + ' vencendo hoje</div></div>' +
+    '</div>';
 
-  const fila = ordenaFila(aCorrigir.concat(emCorrecao));
-  const prontos = corrigidos.slice().sort((a, b) =>
-    String(b.corrigido_em || "").localeCompare(String(a.corrigido_em || "")));
-
-  const linhaFila = d =>
-    '<li data-open="' + d.id + '">' +
-      '<span class="pri ' + (d.prioridade === "Urgente" ? "urg" : estaAtrasado(d) ? "atr" : "") + '"></span>' +
-      '<div class="info">' +
-        '<div class="t">' + esc(d.adquirente || d.tipo_documento) +
-          (identificaLote(d) ? ' <span class="dim" style="font-weight:400">· ' + esc(identificaLote(d)) + '</span>' : "") + '</div>' +
-        '<div class="s">' + esc(nomeCliente(d.cliente_id)) +
-          (d.empreendimento ? " · " + esc(d.empreendimento) : "") + " · " + codigo(d) + '</div>' +
-      '</div>' +
-      '<div class="right">' +
-        (d.prioridade === "Urgente" ? '<span class="badge urgente">urgente</span>' : "") +
-        badgePrazo(d) + badgeStatus(d.status) +
-      '</div>' +
-    '</li>';
-
-  const linhaPronto = d =>
-    '<li data-open="' + d.id + '">' +
-      '<span class="pri" style="background:var(--green)"></span>' +
-      '<div class="info">' +
-        '<div class="t">' + esc(d.adquirente || d.tipo_documento) +
-          (identificaLote(d) ? ' <span class="dim" style="font-weight:400">· ' + esc(identificaLote(d)) + '</span>' : "") + '</div>' +
-        '<div class="s">' + esc(nomeCliente(d.cliente_id)) + " · corrigido em " + fmtDataHora(d.corrigido_em) + '</div>' +
-      '</div>' +
-      '<div class="right">' +
-        (ultimoArq(d, "corrigido") ? '<button class="btn sm green" data-baixar="' + d.id + '">Baixar</button>' : '<span class="badge ok">sem arquivo</span>') +
-        '<button class="btn sm" data-finalizar="' + d.id + '">Finalizar</button>' +
-      '</div>' +
-    '</li>';
+  const colunas = STATUS.map(st => {
+    const lista = ordenaFila(ds.filter(d => d.status === st));
+    return '<div class="col" data-col="' + esc(st) + '">' +
+      '<div class="ch"><span class="pip" style="background:' + corStatus(st) + '"></span>' +
+        '<h3>' + esc(st) + '</h3><span class="n">' + lista.length + '</span></div>' +
+      '<div class="cb">' +
+        (lista.length ? lista.map(cartao).join("") : '<div class="vazio">Arraste um cartão para cá</div>') +
+      '</div></div>';
+  }).join("");
 
   const porCliente = State.clientes.map(c => {
     const l = ds.filter(d => d.cliente_id === c.id);
-    return {
-      c: c,
-      total: l.length,
-      corrigir: l.filter(d => d.status === "A corrigir").length,
-      emcorr: l.filter(d => d.status === "Em correção").length,
-      pronto: l.filter(d => d.status === "Corrigido").length,
-      atraso: l.filter(estaAtrasado).length
-    };
-  }).filter(x => x.total > 0).sort((a, b) => (b.corrigir + b.emcorr) - (a.corrigir + a.emcorr));
+    return { c:c, total:l.length,
+      corrigir:l.filter(d => d.status === "A corrigir").length,
+      emcorr:l.filter(d => d.status === "Em correção").length,
+      pronto:l.filter(d => d.status === "Corrigido").length,
+      atraso:l.filter(estaAtrasado).length };
+  }).filter(x => x.total > 0).sort((a,b) => (b.corrigir+b.emcorr) - (a.corrigir+a.emcorr));
 
   $("#content").innerHTML =
-    '<div class="stats">' +
-      stat("Para corrigir", aCorrigir.length, "aguardando o Dr. Leilton", "orange", "A corrigir") +
-      stat("Em correção", emCorrecao.length, "já em análise", "blue", "Em correção") +
-      stat("Corrigidos", corrigidos.length, "prontos para devolver", "green", "Corrigido") +
-      stat("Atrasados", atrasados.length, hoje.length + " vencendo hoje", "red", "__atrasados") +
-    '</div>' +
+    '<div class="phead"><h2>Painel</h2>' +
+      '<div class="sub">arraste o cartão entre as colunas para mudar a situação</div></div>' +
+    strip +
+    '<div class="board">' + colunas + '</div>' +
+    (porCliente.length
+      ? '<div class="card" style="margin-top:20px"><div class="ch"><h3>Resumo por cliente</h3>' +
+        '<span class="n">' + porCliente.length + '</span></div><div class="cb flush">' +
+        '<table><thead><tr><th>Cliente</th><th>Para corrigir</th><th>Em correção</th><th>Corrigidos</th><th>Atrasados</th><th>Total</th></tr></thead><tbody>' +
+        porCliente.map(x =>
+          '<tr data-cliente="' + x.c.id + '"><td class="strong">' + esc(x.c.nome) + '</td>' +
+          '<td>' + (x.corrigir ? '<span class="tag t-corrigir">' + x.corrigir + '</span>' : '<span class="dim">—</span>') + '</td>' +
+          '<td>' + (x.emcorr ? '<span class="tag t-emcorrecao">' + x.emcorr + '</span>' : '<span class="dim">—</span>') + '</td>' +
+          '<td>' + (x.pronto ? '<span class="tag t-corrigido">' + x.pronto + '</span>' : '<span class="dim">—</span>') + '</td>' +
+          '<td>' + (x.atraso ? '<span class="tag t-alerta">' + x.atraso + '</span>' : '<span class="dim">—</span>') + '</td>' +
+          '<td class="strong">' + x.total + '</td></tr>').join("") +
+        '</tbody></table></div></div>'
+      : (ds.length ? "" :
+        '<div class="card" style="margin-top:20px"><div class="empty"><div class="mk">LC</div>' +
+        '<p>Nenhum distrato ainda. Cadastre um cliente e lance o primeiro para o painel ganhar vida.</p>' +
+        '<button class="btn primary" data-novo-cliente="1">+ Novo cliente</button></div></div>'));
 
-    '<div class="cols2">' +
-      '<div class="card"><div class="head">' +
-        '<h3>Fila de correção</h3><span class="n">' + fila.length + '</span>' +
-        '<div class="spacer"></div>' +
-        '<span class="dim" style="font-size:11px;color:var(--text-3)">mais urgentes primeiro</span>' +
-      '</div><div class="body flush">' +
-        (fila.length
-          ? '<ul class="fila">' + fila.slice(0, 40).map(linhaFila).join("") + '</ul>'
-          : '<div class="empty"><div class="big">✓</div><p>Nenhum distrato aguardando correção.</p></div>') +
-      '</div></div>' +
-
-      '<div class="card"><div class="head">' +
-        '<h3>Corrigidos</h3><span class="n">' + prontos.length + '</span>' +
-        '<div class="spacer"></div>' +
-        '<span class="dim" style="font-size:11px;color:var(--text-3)">devolver ao cliente</span>' +
-      '</div><div class="body flush">' +
-        (prontos.length
-          ? '<ul class="fila">' + prontos.slice(0, 40).map(linhaPronto).join("") + '</ul>'
-          : '<div class="empty"><div class="big">—</div><p>Nada corrigido ainda.</p></div>') +
-      '</div></div>' +
-    '</div>' +
-
-    '<div class="card"><div class="head"><h3>Resumo por cliente</h3><span class="n">' + porCliente.length + '</span></div>' +
-    '<div class="body flush">' +
-      (porCliente.length
-        ? '<table><thead><tr><th>Cliente</th><th>Para corrigir</th><th>Em correção</th><th>Corrigidos</th><th>Atrasados</th><th>Total</th></tr></thead><tbody>' +
-          porCliente.map(x =>
-            '<tr data-cliente="' + x.c.id + '">' +
-              '<td class="strong">' + esc(x.c.nome) + '</td>' +
-              '<td>' + (x.corrigir ? '<span class="badge s-corrigir">' + x.corrigir + '</span>' : '<span class="dim">—</span>') + '</td>' +
-              '<td>' + (x.emcorr ? '<span class="badge s-emcorrecao">' + x.emcorr + '</span>' : '<span class="dim">—</span>') + '</td>' +
-              '<td>' + (x.pronto ? '<span class="badge s-corrigido">' + x.pronto + '</span>' : '<span class="dim">—</span>') + '</td>' +
-              '<td>' + (x.atraso ? '<span class="badge atraso">' + x.atraso + '</span>' : '<span class="dim">—</span>') + '</td>' +
-              '<td class="strong">' + x.total + '</td>' +
-            '</tr>').join("") +
-          '</tbody></table>'
-        : '<div class="empty"><div class="big">◷</div><p>Cadastre um cliente e lance o primeiro distrato para o painel ganhar vida.</p>' +
-          '<button class="btn primary" data-novo-cliente="1">+ Novo cliente</button></div>') +
-    '</div></div>';
-
-  $$("[data-stat]").forEach(el => el.addEventListener("click", () => {
-    State.filtro = { cliente:"", status: el.dataset.stat, tipo:"", prazo:"" };
+  $$("[data-f]").forEach(el => el.addEventListener("click", () => {
+    State.filtro = { cliente:"", status:el.dataset.f, tipo:"", prazo:"" };
     irPara("distratos");
   }));
-  ligarLinhas();
+  ligarQuadro();
+  ligarComuns();
+}
+
+/* --- arrastar cartões entre colunas --- */
+let arrastandoId = null;
+function ligarQuadro(){
+  $$(".kc").forEach(c => {
+    c.addEventListener("click", () => { if (!arrastandoId) abrirDistrato(c.dataset.id); });
+    c.addEventListener("dragstart", ev => {
+      arrastandoId = c.dataset.id;
+      c.classList.add("dragging");
+      ev.dataTransfer.effectAllowed = "move";
+      ev.dataTransfer.setData("text/plain", c.dataset.id);
+    });
+    c.addEventListener("dragend", () => {
+      c.classList.remove("dragging");
+      setTimeout(() => { arrastandoId = null; }, 80);
+    });
+  });
+  $$(".col").forEach(col => {
+    col.addEventListener("dragover", ev => { ev.preventDefault(); ev.dataTransfer.dropEffect = "move"; col.classList.add("over"); });
+    col.addEventListener("dragleave", ev => { if (!col.contains(ev.relatedTarget)) col.classList.remove("over"); });
+    col.addEventListener("drop", async ev => {
+      ev.preventDefault();
+      col.classList.remove("over");
+      const id = ev.dataTransfer.getData("text/plain") || arrastandoId;
+      const destino = col.dataset.col;
+      const d = State.distratos.find(x => x.id === id);
+      if (!d || d.status === destino) return;
+      if (destino === "Corrigido" && !ultimoArq(d, "corrigido")) {
+        if (!confirm("Este distrato ainda não tem a versão corrigida anexada.\n\nMarcar como corrigido mesmo assim?")) return;
+      }
+      await mudarStatus(id, destino);
+    });
+  });
 }
 
 /* ============================================================================
-   RENDER — DISTRATOS
+   DISTRATOS
    ============================================================================ */
 function renderDistratos(){
   const lista = ordenaFila(distratosFiltrados());
   const f = State.filtro;
-  const opt = (v, t, sel) => '<option value="' + esc(v) + '"' + (sel === v ? " selected" : "") + ">" + esc(t) + "</option>";
+  const opt = (v,t,sel) => '<option value="' + esc(v) + '"' + (sel === v ? " selected" : "") + ">" + esc(t) + "</option>";
 
   $("#content").innerHTML =
+    '<div class="phead"><h2>Distratos</h2><div class="sub">' + lista.length + ' de ' + State.distratos.length + '</div></div>' +
     '<div class="filters">' +
-      '<select id="f-cliente">' + opt("", "Todos os clientes", f.cliente) +
-        State.clientes.map(c => opt(c.id, c.nome, f.cliente)).join("") + '</select>' +
-      '<select id="f-status">' + opt("", "Todos os status", f.status) +
-        opt("__pendentes", "Pendentes (a corrigir + em correção)", f.status) +
-        opt("__atrasados", "Somente atrasados", f.status) +
-        STATUS.map(s => opt(s, s, f.status)).join("") + '</select>' +
-      '<select id="f-tipo">' + opt("", "Todos os tipos", f.tipo) +
-        TIPOS.map(t => opt(t, t, f.tipo)).join("") + '</select>' +
-      '<select id="f-prazo">' + opt("", "Qualquer prazo", f.prazo) +
-        opt("hoje", "Vence hoje", f.prazo) + opt("semana", "Próximos 7 dias", f.prazo) +
-        opt("vencidos", "Vencidos", f.prazo) + '</select>' +
-      '<div class="spacer"></div>' +
+      '<select id="f-cliente">' + opt("","Todos os clientes",f.cliente) + State.clientes.map(c => opt(c.id,c.nome,f.cliente)).join("") + '</select>' +
+      '<select id="f-status">' + opt("","Todas as situações",f.status) + opt("__pendentes","Pendentes",f.status) +
+        opt("__atrasados","Somente atrasados",f.status) + STATUS.map(s => opt(s,s,f.status)).join("") + '</select>' +
+      '<select id="f-tipo">' + opt("","Todos os tipos",f.tipo) + TIPOS.map(t => opt(t,t,f.tipo)).join("") + '</select>' +
+      '<select id="f-prazo">' + opt("","Qualquer prazo",f.prazo) + opt("hoje","Vence hoje",f.prazo) +
+        opt("semana","Próximos 7 dias",f.prazo) + opt("vencidos","Vencidos",f.prazo) + '</select>' +
+      '<div class="grow"></div>' +
       '<button class="btn sm" id="f-limpar">Limpar filtros</button>' +
       '<button class="btn sm" id="f-csv">Exportar CSV</button>' +
     '</div>' +
-
-    '<div class="card"><div class="body flush">' +
+    '<div class="card"><div class="cb flush">' +
     (lista.length
-      ? '<table><thead><tr>' +
-          '<th>Código</th><th>Cliente</th><th>Adquirente / objeto</th><th>Lote</th>' +
-          '<th>Prazo</th><th>Status</th><th>Arquivos</th>' +
-        '</tr></thead><tbody>' +
+      ? '<table><thead><tr><th>Código</th><th>Cliente</th><th>Adquirente / objeto</th><th>Lote</th><th>Prazo</th><th>Situação</th><th>Arquivos</th></tr></thead><tbody>' +
         lista.map(d => {
-          const orig = ultimoArq(d, "original"), corr = ultimoArq(d, "corrigido");
+          const orig = ultimoArq(d,"original"), corr = ultimoArq(d,"corrigido");
           return '<tr data-open="' + d.id + '">' +
-            '<td class="mono">' + codigo(d) + (d.prioridade === "Urgente" ? ' <span class="badge urgente">!</span>' : "") + '</td>' +
+            '<td class="mono">' + codigo(d) + (d.prioridade === "Urgente" ? ' <span class="tag t-urg">!</span>' : "") + '</td>' +
             '<td><div class="strong">' + esc(nomeCliente(d.cliente_id)) + '</div>' +
               (d.empreendimento ? '<div class="dim">' + esc(d.empreendimento) + '</div>' : "") + '</td>' +
-            '<td><div class="strong">' + esc(d.adquirente || "—") + '</div>' +
-              '<div class="dim">' + esc(d.tipo_documento) + (d.contrato ? " · contrato " + esc(d.contrato) : "") + '</div></td>' +
+            '<td><div class="strong">' + esc(d.adquirente || "—") + '</div><div class="dim">' + esc(d.tipo_documento) +
+              (d.contrato ? " · contrato " + esc(d.contrato) : "") + '</div></td>' +
             '<td>' + (identificaLote(d) ? esc(identificaLote(d)) : '<span class="dim">—</span>') + '</td>' +
-            '<td>' + badgePrazo(d) + '</td>' +
-            '<td>' + badgeStatus(d.status) + '</td>' +
-            '<td>' +
-              (orig ? '<span class="badge ok" title="minuta anexada">minuta</span> ' : "") +
-              (corr ? '<span class="badge s-corrigido">corrigido</span>' : "") +
-              (!orig && !corr ? '<span class="dim">—</span>' : "") +
-            '</td></tr>';
-        }).join("") +
-        '</tbody></table>'
-      : '<div class="empty"><div class="big">◷</div><p>Nenhum distrato encontrado com esses filtros.</p>' +
+            '<td>' + chipPrazo(d) + '</td><td>' + tagStatus(d.status) + '</td>' +
+            '<td>' + (orig ? '<span class="chip doc">minuta</span> ' : "") +
+                     (corr ? '<span class="chip ok">corrigido</span>' : "") +
+                     (!orig && !corr ? '<span class="dim">—</span>' : "") + '</td></tr>';
+        }).join("") + '</tbody></table>'
+      : '<div class="empty"><div class="mk">LC</div><p>Nenhum distrato encontrado com esses filtros.</p>' +
         '<button class="btn primary" data-novo="1">+ Novo distrato</button></div>') +
     '</div></div>';
 
@@ -1002,165 +897,133 @@ function renderDistratos(){
     State.busca = ""; $("#busca").value = ""; render();
   });
   $("#f-csv").addEventListener("click", () => exportarCSV(lista));
-  ligarLinhas();
+  ligarComuns();
 }
 
 function exportarCSV(lista){
   const cab = ["Código","Cliente","Empreendimento","Tipo","Adquirente","CPF","Contrato","Quadra","Lote",
-               "Solicitado em","Prazo","Status","Prioridade","Responsável","Minuta","Corrigido","Observações"];
-  const linhas = lista.map(d => [
-    codigo(d), nomeCliente(d.cliente_id), d.empreendimento, d.tipo_documento, d.adquirente, d.cpf_adquirente,
-    d.contrato, d.quadra, d.lote, fmtData(d.data_solicitacao), fmtData(d.prazo), d.status, d.prioridade,
-    d.responsavel, ultimoArq(d,"original") ? "sim" : "não", ultimoArq(d,"corrigido") ? "sim" : "não", d.observacoes
-  ]);
+               "Solicitado em","Prazo","Situação","Prioridade","Responsável","Minuta","Corrigido","Observações"];
+  const linhas = lista.map(d => [codigo(d), nomeCliente(d.cliente_id), d.empreendimento, d.tipo_documento,
+    d.adquirente, d.cpf_adquirente, d.contrato, d.quadra, d.lote, fmtData(d.data_solicitacao), fmtData(d.prazo),
+    d.status, d.prioridade, d.responsavel, ultimoArq(d,"original") ? "sim" : "não",
+    ultimoArq(d,"corrigido") ? "sim" : "não", d.observacoes]);
   const csv = [cab].concat(linhas)
-    .map(l => l.map(v => '"' + String(v === null || v === undefined ? "" : v).replace(/"/g, '""') + '"').join(";"))
-    .join("\r\n");
+    .map(l => l.map(v => '"' + String(v === null || v === undefined ? "" : v).replace(/"/g,'""') + '"').join(";")).join("\r\n");
   const url = URL.createObjectURL(new Blob(["﻿" + csv], { type:"text/csv;charset=utf-8" }));
   const a = document.createElement("a");
   a.href = url; a.download = "distratos-" + hojeISO() + ".csv"; a.click();
-  URL.revokeObjectURL(url);
-  toast("CSV gerado.", "ok");
+  URL.revokeObjectURL(url); toast("CSV gerado.");
 }
 
 /* ============================================================================
-   RENDER — CLIENTES
+   CLIENTES
    ============================================================================ */
 function renderClientes(){
   const b = State.busca.trim().toLowerCase();
   const lista = State.clientes.filter(c => !b || (c.nome + " " + (c.cnpj||"") + " " + (c.cidade||"")).toLowerCase().includes(b));
-
   $("#content").innerHTML =
-    '<div class="filters"><div class="spacer"></div><button class="btn primary" data-novo-cliente="1">+ Novo cliente</button></div>' +
+    '<div class="phead"><h2>Clientes</h2><div class="sub">loteamentos e empresas atendidas</div>' +
+      '<div class="grow"></div><button class="btn primary" data-novo-cliente="1">+ Novo cliente</button></div>' +
     (lista.length
-      ? '<div class="clientgrid">' + lista.map(c => {
+      ? '<div class="grid-cli">' + lista.map(c => {
           const l = State.distratos.filter(d => d.cliente_id === c.id);
           const corrigir = l.filter(d => d.status === "A corrigir").length;
-          const emcorr   = l.filter(d => d.status === "Em correção").length;
-          const pronto   = l.filter(d => d.status === "Corrigido").length;
-          const atraso   = l.filter(estaAtrasado).length;
-          return '<div class="clientcard" data-cliente="' + c.id + '">' +
-            '<div class="bar" style="background:' + (c.cor || "var(--accent)") + '"></div>' +
-            '<h4>' + esc(c.nome) + '</h4>' +
-            '<div class="meta">' + esc(c.tipo || "Loteamento") +
-              (c.cidade ? " · " + esc(c.cidade) + (c.uf ? "/" + esc(c.uf) : "") : "") + '</div>' +
-            '<div class="nums">' +
-              '<span class="num">' + l.length + ' no total</span>' +
-              (corrigir ? '<span class="num o">' + corrigir + ' a corrigir</span>' : "") +
-              (emcorr ? '<span class="num">' + emcorr + ' em correção</span>' : "") +
-              (pronto ? '<span class="num g">' + pronto + ' corrigidos</span>' : "") +
-              (atraso ? '<span class="num r">' + atraso + ' atrasados</span>' : "") +
+          const emcorr = l.filter(d => d.status === "Em correção").length;
+          const pronto = l.filter(d => d.status === "Corrigido").length;
+          const atraso = l.filter(estaAtrasado).length;
+          return '<div class="cli" data-cliente="' + c.id + '">' +
+            '<div class="top"><h4>' + esc(c.nome) + '</h4>' +
+              '<div class="m">' + esc(c.tipo || "Loteamento") +
+              (c.cidade ? " · " + esc(c.cidade) + (c.uf ? "/" + esc(c.uf) : "") : "") + '</div></div>' +
+            '<div class="bot"><span class="chip">' + l.length + ' no total</span>' +
+              (corrigir ? '<span class="chip doc">' + corrigir + ' a corrigir</span>' : "") +
+              (emcorr ? '<span class="chip">' + emcorr + ' em correção</span>' : "") +
+              (pronto ? '<span class="chip ok">' + pronto + ' corrigidos</span>' : "") +
+              (atraso ? '<span class="chip al">' + atraso + ' atrasados</span>' : "") +
             '</div></div>';
         }).join("") + '</div>'
-      : '<div class="card"><div class="empty"><div class="big">◷</div>' +
-        '<p>Nenhum cliente cadastrado. Comece cadastrando os loteamentos que enviam distratos.</p>' +
+      : '<div class="card"><div class="empty"><div class="mk">LC</div>' +
+        '<p>Nenhum cliente cadastrado. Comece pelos loteamentos que enviam distratos.</p>' +
         '<button class="btn primary" data-novo-cliente="1">+ Novo cliente</button></div></div>');
-  ligarLinhas();
+  ligarComuns();
 }
 
 function renderCliente(){
   const c = State.clientes.find(x => x.id === State.clienteAberto);
   if (!c) { irPara("clientes"); return; }
   const l = ordenaFila(State.distratos.filter(d => d.cliente_id === c.id));
-  const corrigir = l.filter(d => d.status === "A corrigir").length;
-  const emcorr   = l.filter(d => d.status === "Em correção").length;
-  const pronto   = l.filter(d => d.status === "Corrigido").length;
-  const fim      = l.filter(d => d.status === "Finalizado").length;
-  const atraso   = l.filter(estaAtrasado).length;
+  const cont = s => l.filter(d => d.status === s).length;
 
   $("#content").innerHTML =
-    '<div class="filters">' +
-      '<button class="btn sm" data-go-clientes="1">← Todos os clientes</button>' +
-      '<div class="spacer"></div>' +
+    '<div class="phead">' +
+      '<button class="btn sm" data-go-clientes="1">← Clientes</button>' +
+      '<h2>' + esc(c.nome) + '</h2><div class="sub">' + esc(c.tipo || "Loteamento") + '</div>' +
+      '<div class="grow"></div>' +
       '<button class="btn sm" data-edit-cliente="' + c.id + '">Editar cliente</button>' +
-      '<button class="btn primary" data-novo="' + c.id + '">+ Novo distrato</button>' +
-    '</div>' +
+      '<button class="btn primary" data-novo="' + c.id + '">+ Novo distrato</button></div>' +
 
-    '<div class="card"><div class="body">' +
-      '<div class="kv">' +
-        '<div><div class="k">Cliente</div><div class="v">' + esc(c.nome) + '</div></div>' +
-        '<div><div class="k">Tipo</div><div class="v">' + esc(c.tipo || "—") + '</div></div>' +
-        '<div><div class="k">CNPJ</div><div class="v' + (c.cnpj ? '' : ' empty-v') + '">' + esc(c.cnpj || "não informado") + '</div></div>' +
-        '<div><div class="k">Responsável</div><div class="v' + (c.responsavel ? '' : ' empty-v') + '">' + esc(c.responsavel || "não informado") + '</div></div>' +
-        '<div><div class="k">Telefone</div><div class="v' + (c.telefone ? '' : ' empty-v') + '">' + esc(c.telefone || "não informado") + '</div></div>' +
-        '<div><div class="k">E-mail</div><div class="v' + (c.email ? '' : ' empty-v') + '">' + esc(c.email || "não informado") + '</div></div>' +
-        '<div><div class="k">Cidade</div><div class="v' + (c.cidade ? '' : ' empty-v') + '">' + esc(c.cidade || "—") + (c.uf ? "/" + esc(c.uf) : "") + '</div></div>' +
-      '</div>' +
-      (c.obs ? '<div style="font-size:12.5px;color:var(--text-2);border-top:1px solid var(--border-soft);padding-top:12px">' + esc(c.obs) + '</div>' : "") +
+    '<div class="card"><div class="cb"><div class="kv" style="margin:0">' +
+      '<div><div class="k">CNPJ</div><div class="v' + (c.cnpj ? '' : ' nao') + '">' + esc(c.cnpj || "não informado") + '</div></div>' +
+      '<div><div class="k">Contato</div><div class="v' + (c.responsavel ? '' : ' nao') + '">' + esc(c.responsavel || "não informado") + '</div></div>' +
+      '<div><div class="k">Telefone</div><div class="v' + (c.telefone ? '' : ' nao') + '">' + esc(c.telefone || "não informado") + '</div></div>' +
+      '<div><div class="k">E-mail</div><div class="v' + (c.email ? '' : ' nao') + '">' + esc(c.email || "não informado") + '</div></div>' +
+      '<div><div class="k">Cidade</div><div class="v' + (c.cidade ? '' : ' nao') + '">' + esc(c.cidade || "—") + (c.uf ? "/" + esc(c.uf) : "") + '</div></div>' +
+    '</div>' + (c.obs ? '<div style="font-size:12.5px;color:var(--text-2);border-top:1px solid var(--border-soft);margin-top:14px;padding-top:13px">' + esc(c.obs) + '</div>' : "") +
     '</div></div>' +
 
-    '<div class="stats">' +
-      '<div class="stat"><div class="bar" style="background:var(--orange)"></div><div class="lbl">A corrigir</div><div class="val" style="color:var(--orange)">' + corrigir + '</div></div>' +
-      '<div class="stat"><div class="bar" style="background:var(--blue)"></div><div class="lbl">Em correção</div><div class="val" style="color:var(--blue)">' + emcorr + '</div></div>' +
-      '<div class="stat"><div class="bar" style="background:var(--green)"></div><div class="lbl">Corrigidos</div><div class="val" style="color:var(--green)">' + pronto + '</div></div>' +
-      '<div class="stat"><div class="bar" style="background:var(--purple)"></div><div class="lbl">Finalizados</div><div class="val" style="color:var(--purple)">' + fim + '</div></div>' +
-      '<div class="stat"><div class="bar" style="background:var(--red)"></div><div class="lbl">Atrasados</div><div class="val" style="color:var(--red)">' + atraso + '</div></div>' +
+    '<div class="strip">' +
+      '<div class="s bronze"><div class="k">Para corrigir</div><div class="v">' + cont("A corrigir") + '</div></div>' +
+      '<div class="s"><div class="k">Em correção</div><div class="v">' + cont("Em correção") + '</div></div>' +
+      '<div class="s"><div class="k">Corrigidos</div><div class="v">' + cont("Corrigido") + '</div></div>' +
+      '<div class="s"><div class="k">Finalizados</div><div class="v">' + cont("Finalizado") + '</div></div>' +
+      '<div class="s alerta"><div class="k">Atrasados</div><div class="v">' + l.filter(estaAtrasado).length + '</div></div>' +
     '</div>' +
 
-    '<div class="card"><div class="head"><h3>Distratos deste cliente</h3><span class="n">' + l.length + '</span></div>' +
-    '<div class="body flush">' +
+    '<div class="card"><div class="ch"><h3>Distratos deste cliente</h3><span class="n">' + l.length + '</span></div>' +
+    '<div class="cb flush">' +
       (l.length
-        ? '<table><thead><tr><th>Código</th><th>Adquirente / objeto</th><th>Lote</th><th>Contrato</th><th>Prazo</th><th>Status</th><th>Arquivos</th></tr></thead><tbody>' +
+        ? '<table><thead><tr><th>Código</th><th>Adquirente / objeto</th><th>Lote</th><th>Contrato</th><th>Prazo</th><th>Situação</th><th>Arquivos</th></tr></thead><tbody>' +
           l.map(d => {
-            const orig = ultimoArq(d, "original"), corr = ultimoArq(d, "corrigido");
-            return '<tr data-open="' + d.id + '">' +
-              '<td class="mono">' + codigo(d) + (d.prioridade === "Urgente" ? ' <span class="badge urgente">!</span>' : "") + '</td>' +
+            const orig = ultimoArq(d,"original"), corr = ultimoArq(d,"corrigido");
+            return '<tr data-open="' + d.id + '"><td class="mono">' + codigo(d) +
+              (d.prioridade === "Urgente" ? ' <span class="tag t-urg">!</span>' : "") + '</td>' +
               '<td><div class="strong">' + esc(d.adquirente || "—") + '</div><div class="dim">' + esc(d.tipo_documento) + '</div></td>' +
               '<td>' + (identificaLote(d) ? esc(identificaLote(d)) : '<span class="dim">—</span>') + '</td>' +
               '<td>' + (d.contrato ? esc(d.contrato) : '<span class="dim">—</span>') + '</td>' +
-              '<td>' + badgePrazo(d) + '</td><td>' + badgeStatus(d.status) + '</td>' +
-              '<td>' + (orig ? '<span class="badge ok">minuta</span> ' : "") +
-                       (corr ? '<span class="badge s-corrigido">corrigido</span>' : "") +
+              '<td>' + chipPrazo(d) + '</td><td>' + tagStatus(d.status) + '</td>' +
+              '<td>' + (orig ? '<span class="chip doc">minuta</span> ' : "") +
+                       (corr ? '<span class="chip ok">corrigido</span>' : "") +
                        (!orig && !corr ? '<span class="dim">—</span>' : "") + '</td></tr>';
           }).join("") + '</tbody></table>'
-        : '<div class="empty"><div class="big">◷</div><p>Nenhum distrato lançado para este cliente.</p>' +
+        : '<div class="empty"><div class="mk">LC</div><p>Nenhum distrato lançado para este cliente.</p>' +
           '<button class="btn primary" data-novo="' + c.id + '">+ Novo distrato</button></div>') +
     '</div></div>';
-  ligarLinhas();
+  ligarComuns();
 }
 
 /* ============================================================================
-   LIGAÇÕES DE CLIQUE COMUNS
+   LIGAÇÕES COMUNS
    ============================================================================ */
-function ligarLinhas(){
-  $$("[data-open]").forEach(el => el.addEventListener("click", ev => {
-    if (ev.target.closest("[data-baixar],[data-finalizar]")) return;
-    abrirDistrato(el.dataset.open);
-  }));
+function ligarComuns(){
+  $$("[data-open]").forEach(el => el.addEventListener("click", () => abrirDistrato(el.dataset.open)));
   $$("[data-cliente]").forEach(el => el.addEventListener("click", () => irPara("cliente", el.dataset.cliente)));
-  $$("[data-novo]").forEach(el => el.addEventListener("click", () => formDistrato(null, el.dataset.novo !== "1" ? el.dataset.novo : null)));
+  $$("[data-novo]").forEach(el => el.addEventListener("click", () =>
+    formDistrato(null, el.dataset.novo !== "1" ? el.dataset.novo : null)));
   $$("[data-novo-cliente]").forEach(el => el.addEventListener("click", () => formCliente(null)));
   $$("[data-edit-cliente]").forEach(el => el.addEventListener("click", () => formCliente(el.dataset.editCliente)));
   $$("[data-go-clientes]").forEach(el => el.addEventListener("click", () => irPara("clientes")));
-  $$("[data-baixar]").forEach(el => el.addEventListener("click", ev => {
-    ev.stopPropagation();
-    const d = State.distratos.find(x => x.id === el.dataset.baixar);
-    const a = d && ultimoArq(d, "corrigido");
-    if (a) baixarArquivo(a);
-  }));
-  $$("[data-finalizar]").forEach(el => el.addEventListener("click", async ev => {
-    ev.stopPropagation();
-    await mudarStatus(el.dataset.finalizar, "Finalizado");
-  }));
 }
 
-/* ============================================================================
-   RENDER PRINCIPAL
-   ============================================================================ */
-const TITULOS = { painel:"Painel", distratos:"Distratos", clientes:"Clientes", cliente:"Cliente" };
 function render(){
-  renderNav();
-  $("#page-title").textContent = State.view === "cliente"
-    ? (State.clientes.find(c => c.id === State.clienteAberto) || {}).nome || "Cliente"
-    : TITULOS[State.view] || "Painel";
-  if (State.view === "painel")    renderPainel();
+  renderTabs();
+  if (State.view === "painel") renderPainel();
   else if (State.view === "distratos") renderDistratos();
-  else if (State.view === "clientes")  renderClientes();
-  else if (State.view === "cliente")   renderCliente();
+  else if (State.view === "clientes") renderClientes();
+  else if (State.view === "cliente") renderCliente();
 }
 
 /* ============================================================================
-   MODAL — INFRAESTRUTURA
+   MODAIS
    ============================================================================ */
 function fecharModal(){ $("#overlay").classList.remove("on"); $("#overlay").innerHTML = ""; }
 function abrirModal(html, classe){
@@ -1173,17 +1036,14 @@ function abrirModal(html, classe){
 }
 document.addEventListener("keydown", ev => { if (ev.key === "Escape") fecharModal(); });
 
-/* ============================================================================
-   MODAL — FORMULÁRIO DE CLIENTE
-   ============================================================================ */
+/* --- cliente --- */
 function formCliente(id){
   const c = id ? State.clientes.find(x => x.id === id) : null;
-  const opt = (v, sel) => '<option' + (sel === v ? " selected" : "") + ">" + esc(v) + "</option>";
+  const opt = (v,sel) => '<option' + (sel === v ? " selected" : "") + ">" + esc(v) + "</option>";
   const m = abrirModal(
-    '<div class="m-head"><h3>' + (c ? "Editar cliente" : "Novo cliente") + '</h3>' +
-      '<button class="iconbtn" data-fechar>✕</button></div>' +
-    '<div class="m-body"><div class="grid2">' +
-      '<div class="fg full"><label>Nome do cliente / loteamento *</label><input id="c-nome" value="' + esc(c && c.nome) + '" required></div>' +
+    '<div class="mh"><h3>' + (c ? "Editar cliente" : "Novo cliente") + '</h3><button class="x" data-fechar>✕</button></div>' +
+    '<div class="mb"><div class="g2">' +
+      '<div class="fg full"><label>Nome do cliente / loteamento *</label><input id="c-nome" value="' + esc(c && c.nome) + '"></div>' +
       '<div class="fg"><label>Tipo</label><select id="c-tipo">' + TIPOS_CLIENTE.map(t => opt(t, c && c.tipo)).join("") + '</select></div>' +
       '<div class="fg"><label>CNPJ / CPF</label><input id="c-cnpj" value="' + esc(c && c.cnpj) + '"></div>' +
       '<div class="fg"><label>Pessoa de contato</label><input id="c-resp" value="' + esc(c && c.responsavel) + '"></div>' +
@@ -1191,168 +1051,122 @@ function formCliente(id){
       '<div class="fg"><label>E-mail</label><input id="c-email" value="' + esc(c && c.email) + '"></div>' +
       '<div class="fg"><label>Cidade</label><input id="c-cidade" value="' + esc(c && c.cidade) + '"></div>' +
       '<div class="fg"><label>UF</label><input id="c-uf" maxlength="2" value="' + esc(c && c.uf) + '"></div>' +
-      '<div class="fg"><label>Cor de identificação</label><input type="color" id="c-cor" value="' + esc((c && c.cor) || "#d2a94f") + '" style="height:36px;padding:3px"></div>' +
       '<div class="fg full"><label>Observações</label><textarea id="c-obs" rows="3">' + esc(c && c.obs) + '</textarea></div>' +
     '</div></div>' +
-    '<div class="m-foot">' +
-      (c ? '<button class="btn danger" id="c-excluir">Excluir</button>' : "") +
-      '<div class="spacer"></div>' +
-      '<button class="btn" data-fechar>Cancelar</button>' +
-      '<button class="btn primary" id="c-salvar">Salvar</button>' +
-    '</div>'
+    '<div class="mf">' + (c ? '<button class="btn danger" id="c-excluir">Excluir</button>' : "") +
+      '<div class="grow"></div><button class="btn" data-fechar>Cancelar</button>' +
+      '<button class="btn primary" id="c-salvar">Salvar</button></div>'
   );
   setTimeout(() => $("#c-nome", m).focus(), 60);
 
   $("#c-salvar", m).addEventListener("click", async () => {
     const nome = $("#c-nome", m).value.trim();
     if (!nome) { toast("Informe o nome do cliente.", "err"); return; }
-    const dados = {
-      nome: nome,
-      tipo: $("#c-tipo", m).value,
-      cnpj: $("#c-cnpj", m).value.trim() || null,
-      responsavel: $("#c-resp", m).value.trim() || null,
-      telefone: $("#c-tel", m).value.trim() || null,
-      email: $("#c-email", m).value.trim() || null,
-      cidade: $("#c-cidade", m).value.trim() || null,
-      uf: $("#c-uf", m).value.trim().toUpperCase() || null,
-      cor: $("#c-cor", m).value,
-      obs: $("#c-obs", m).value.trim() || null
-    };
+    const dados = { nome:nome, tipo:$("#c-tipo",m).value,
+      cnpj:$("#c-cnpj",m).value.trim()||null, responsavel:$("#c-resp",m).value.trim()||null,
+      telefone:$("#c-tel",m).value.trim()||null, email:$("#c-email",m).value.trim()||null,
+      cidade:$("#c-cidade",m).value.trim()||null, uf:$("#c-uf",m).value.trim().toUpperCase()||null,
+      obs:$("#c-obs",m).value.trim()||null };
     try {
-      if (c) {
-        const { error } = await sb.from("clientes").update(dados).eq("id", c.id);
-        if (error) throw error;
-      } else {
-        dados.criado_por = quem();
-        const { error } = await sb.from("clientes").insert(dados);
-        if (error) throw error;
-      }
-      fecharModal();
-      await recarregar(true);
-      toast(c ? "Cliente atualizado." : "Cliente cadastrado.", "ok");
+      if (c) { const { error } = await sb.from("clientes").update(dados).eq("id", c.id); if (error) throw error; }
+      else { dados.criado_por = quem(); const { error } = await sb.from("clientes").insert(dados); if (error) throw error; }
+      fecharModal(); await recarregar(true); toast(c ? "Cliente atualizado." : "Cliente cadastrado.");
     } catch(e){ toast("Erro ao salvar: " + e.message, "err"); }
   });
-
   if (c) $("#c-excluir", m).addEventListener("click", async () => {
     const n = State.distratos.filter(d => d.cliente_id === c.id).length;
     if (!confirm("Excluir \"" + c.nome + "\"?" + (n ? "\n\nIsso apaga também os " + n + " distrato(s) vinculados." : ""))) return;
     try {
-      const { error } = await sb.from("clientes").delete().eq("id", c.id);
-      if (error) throw error;
-      fecharModal();
-      State.view = "clientes";
-      await recarregar(true);
-      toast("Cliente excluído.", "ok");
+      const { error } = await sb.from("clientes").delete().eq("id", c.id); if (error) throw error;
+      fecharModal(); State.view = "clientes"; await recarregar(true); toast("Cliente excluído.");
     } catch(e){ toast("Erro: " + e.message, "err"); }
   });
 }
 
-/* ============================================================================
-   MODAL — FORMULÁRIO DE DISTRATO
-   ============================================================================ */
+/* --- distrato: cadastro/edição --- */
 function formDistrato(id, clientePre){
   if (!State.clientes.length) { toast("Cadastre um cliente antes.", "err"); formCliente(null); return; }
   const d = id ? State.distratos.find(x => x.id === id) : null;
   const sel = d ? d.cliente_id : (clientePre || (State.view === "cliente" ? State.clienteAberto : "") || State.clientes[0].id);
-  const opt = (v, t, s) => '<option value="' + esc(v) + '"' + (s === v ? " selected" : "") + ">" + esc(t) + "</option>";
+  const opt = (v,t,s) => '<option value="' + esc(v) + '"' + (s === v ? " selected" : "") + ">" + esc(t) + "</option>";
 
   const m = abrirModal(
-    '<div class="m-head"><h3>' + (d ? "Editar " + codigo(d) : "Novo distrato") + '</h3>' +
-      '<button class="iconbtn" data-fechar>✕</button></div>' +
-    '<div class="m-body"><div class="grid2">' +
-      '<div class="fg full"><label>Cliente / loteamento *</label><select id="d-cliente">' +
+    '<div class="mh"><h3>' + (d ? "Editar " + codigo(d) : "Novo distrato") + '</h3><button class="x" data-fechar>✕</button></div>' +
+    '<div class="mb">' +
+      '<div class="fg"><label>Cliente / loteamento *</label><select id="d-cliente">' +
         State.clientes.map(c => opt(c.id, c.nome, sel)).join("") + '</select></div>' +
-      '<div class="fg"><label>Tipo de documento</label><select id="d-tipo">' +
-        TIPOS.map(t => opt(t, t, d ? d.tipo_documento : "Distrato")).join("") + '</select></div>' +
-      '<div class="fg"><label>Empreendimento</label><input id="d-emp" value="' + esc(d && d.empreendimento) + '" placeholder="ex.: Residencial Bela Vista"></div>' +
-      '<div class="fg"><label>Adquirente (distratante)</label><input id="d-adq" value="' + esc(d && d.adquirente) + '"></div>' +
-      '<div class="fg"><label>CPF do adquirente</label><input id="d-cpf" value="' + esc(d && d.cpf_adquirente) + '"></div>' +
-      '<div class="fg"><label>Quadra</label><input id="d-quadra" value="' + esc(d && d.quadra) + '"></div>' +
-      '<div class="fg"><label>Lote</label><input id="d-lote" value="' + esc(d && d.lote) + '"></div>' +
-      '<div class="fg"><label>Nº do contrato</label><input id="d-contrato" value="' + esc(d && d.contrato) + '"></div>' +
-      '<div class="fg"><label>Responsável pela minuta</label><input id="d-resp" value="' + esc(d ? d.responsavel : quem()) + '"></div>' +
-      '<div class="fg"><label>Data da solicitação</label><input type="date" id="d-solic" value="' + esc(d ? String(d.data_solicitacao || "").slice(0,10) : hojeISO()) + '"></div>' +
-      '<div class="fg"><label>Prazo para correção</label><input type="date" id="d-prazo" value="' + esc(d ? String(d.prazo || "").slice(0,10) : "") + '"></div>' +
-      '<div class="fg"><label>Prioridade</label><select id="d-pri">' +
-        opt("Normal", "Normal", d ? d.prioridade : "Normal") + opt("Urgente", "Urgente", d ? d.prioridade : "Normal") + '</select></div>' +
-      (d ? '<div class="fg"><label>Status</label><select id="d-status">' +
-        STATUS.map(s => opt(s, s, d.status)).join("") + '</select></div>' : '') +
-      '<div class="fg full"><label>Observações</label><textarea id="d-obs" rows="3">' + esc(d && d.observacoes) + '</textarea></div>' +
-    '</div>' +
-    (d ? "" :
-      '<div class="sec" style="margin-top:6px"><div class="st">Minuta do distrato (opcional agora)</div>' +
-      '<div class="dropzone" id="d-drop"><div class="t">Clique para escolher o arquivo</div>' +
-      '<div class="s">Você também pode anexar depois, na tela do distrato</div></div>' +
-      '<input type="file" id="d-file" style="display:none">' +
-      '<div id="d-filename" style="font-size:12px;color:var(--text-2);margin-top:8px"></div></div>') +
-    '</div>' +
-    '<div class="m-foot">' +
-      (d ? '<button class="btn danger" id="d-excluir">Excluir</button>' : "") +
-      '<div class="spacer"></div>' +
-      '<button class="btn" data-fechar>Cancelar</button>' +
-      '<button class="btn primary" id="d-salvar">' + (d ? "Salvar" : "Cadastrar") + '</button>' +
-    '</div>', "lg"
+      (d ? "" :
+        '<div class="sec destaque" style="margin:16px 0 22px"><div class="st"><span>Arquivo do distrato para o Dr. corrigir</span></div>' +
+        '<div class="dz" id="d-drop"><div class="t">Clique aqui para escolher o arquivo</div>' +
+        '<div class="s">Word, PDF ou outro — ou arraste o arquivo para cá</div></div>' +
+        '<div id="d-filename" style="font-size:12.5px;color:var(--accent-deep);margin-top:10px;font-weight:600"></div></div>') +
+      '<div class="g2">' +
+        '<div class="fg"><label>Tipo de documento</label><select id="d-tipo">' +
+          TIPOS.map(t => opt(t,t, d ? d.tipo_documento : "Distrato")).join("") + '</select></div>' +
+        '<div class="fg"><label>Empreendimento</label><input id="d-emp" value="' + esc(d && d.empreendimento) + '" placeholder="ex.: Residencial Bela Vista"></div>' +
+        '<div class="fg"><label>Adquirente (distratante)</label><input id="d-adq" value="' + esc(d && d.adquirente) + '"></div>' +
+        '<div class="fg"><label>CPF do adquirente</label><input id="d-cpf" value="' + esc(d && d.cpf_adquirente) + '"></div>' +
+        '<div class="fg"><label>Quadra</label><input id="d-quadra" value="' + esc(d && d.quadra) + '"></div>' +
+        '<div class="fg"><label>Lote</label><input id="d-lote" value="' + esc(d && d.lote) + '"></div>' +
+        '<div class="fg"><label>Nº do contrato</label><input id="d-contrato" value="' + esc(d && d.contrato) + '"></div>' +
+        '<div class="fg"><label>Responsável pela minuta</label><input id="d-resp" value="' + esc(d ? d.responsavel : quem()) + '"></div>' +
+        '<div class="fg"><label>Data da solicitação</label><input type="date" id="d-solic" value="' + esc(d ? String(d.data_solicitacao||"").slice(0,10) : hojeISO()) + '"></div>' +
+        '<div class="fg"><label>Prazo para correção</label><input type="date" id="d-prazo" value="' + esc(d ? String(d.prazo||"").slice(0,10) : "") + '"></div>' +
+        '<div class="fg"><label>Prioridade</label><select id="d-pri">' +
+          opt("Normal","Normal", d ? d.prioridade : "Normal") + opt("Urgente","Urgente", d ? d.prioridade : "Normal") + '</select></div>' +
+        (d ? '<div class="fg"><label>Situação</label><select id="d-status">' + STATUS.map(s => opt(s,s,d.status)).join("") + '</select></div>' : '') +
+        '<div class="fg full"><label>Observações</label><textarea id="d-obs" rows="3">' + esc(d && d.observacoes) + '</textarea></div>' +
+      '</div></div>' +
+    '<div class="mf">' + (d ? '<button class="btn danger" id="d-excluir">Excluir</button>' : "") +
+      '<div class="grow"></div><button class="btn" data-fechar>Cancelar</button>' +
+      '<button class="btn primary" id="d-salvar">' + (d ? "Salvar" : "Cadastrar") + '</button></div>', "lg"
   );
 
   let arquivoNovo = null;
   if (!d) {
-    const drop = $("#d-drop", m), inp = $("#d-file", m);
-    drop.addEventListener("click", () => inp.click());
-    inp.addEventListener("change", () => {
-      arquivoNovo = inp.files[0] || null;
-      $("#d-filename", m).textContent = arquivoNovo ? "Selecionado: " + arquivoNovo.name + " (" + fmtTam(arquivoNovo.size) + ")" : "";
+    const drop = $("#d-drop", m);
+    const mostra = f => { arquivoNovo = f; $("#d-filename", m).textContent = f ? "✓ " + f.name + "  (" + fmtTam(f.size) + ")" : ""; };
+    drop.addEventListener("click", () => {
+      const inp = document.createElement("input");
+      inp.type = "file";
+      inp.onchange = () => { if (inp.files[0]) mostra(inp.files[0]); };
+      inp.click();
     });
     ["dragover","dragleave","drop"].forEach(evt => drop.addEventListener(evt, e => {
       e.preventDefault();
       drop.classList.toggle("drag", evt === "dragover");
-      if (evt === "drop" && e.dataTransfer.files[0]) {
-        arquivoNovo = e.dataTransfer.files[0];
-        $("#d-filename", m).textContent = "Selecionado: " + arquivoNovo.name + " (" + fmtTam(arquivoNovo.size) + ")";
-      }
+      if (evt === "drop" && e.dataTransfer.files[0]) mostra(e.dataTransfer.files[0]);
     }));
   }
 
   $("#d-salvar", m).addEventListener("click", async () => {
     const dados = {
-      cliente_id: $("#d-cliente", m).value,
-      tipo_documento: $("#d-tipo", m).value,
-      empreendimento: $("#d-emp", m).value.trim() || null,
-      adquirente: $("#d-adq", m).value.trim() || null,
-      cpf_adquirente: $("#d-cpf", m).value.trim() || null,
-      quadra: $("#d-quadra", m).value.trim() || null,
-      lote: $("#d-lote", m).value.trim() || null,
-      contrato: $("#d-contrato", m).value.trim() || null,
-      responsavel: $("#d-resp", m).value.trim() || null,
-      data_solicitacao: $("#d-solic", m).value || hojeISO(),
-      prazo: $("#d-prazo", m).value || null,
-      prioridade: $("#d-pri", m).value,
-      observacoes: $("#d-obs", m).value.trim() || null
-    };
+      cliente_id:$("#d-cliente",m).value, tipo_documento:$("#d-tipo",m).value,
+      empreendimento:$("#d-emp",m).value.trim()||null, adquirente:$("#d-adq",m).value.trim()||null,
+      cpf_adquirente:$("#d-cpf",m).value.trim()||null, quadra:$("#d-quadra",m).value.trim()||null,
+      lote:$("#d-lote",m).value.trim()||null, contrato:$("#d-contrato",m).value.trim()||null,
+      responsavel:$("#d-resp",m).value.trim()||null, data_solicitacao:$("#d-solic",m).value || hojeISO(),
+      prazo:$("#d-prazo",m).value||null, prioridade:$("#d-pri",m).value,
+      observacoes:$("#d-obs",m).value.trim()||null };
     try {
       if (d) {
         const novoStatus = $("#d-status", m).value;
         if (novoStatus !== d.status) {
           dados.status = novoStatus;
-          dados.historico = addHistorico(d, 'Status alterado de "' + d.status + '" para "' + novoStatus + '".');
-          if (novoStatus === "Corrigido")  { dados.corrigido_em = new Date().toISOString(); dados.corrigido_por = quem(); }
-          if (novoStatus === "Finalizado") { dados.finalizado_em = new Date().toISOString(); }
+          dados.historico = addHistorico(d, 'Situação alterada de "' + d.status + '" para "' + novoStatus + '".');
+          if (novoStatus === "Corrigido") { dados.corrigido_em = new Date().toISOString(); dados.corrigido_por = quem(); }
+          if (novoStatus === "Finalizado") dados.finalizado_em = new Date().toISOString();
         }
-        const { error } = await sb.from("distratos").update(dados).eq("id", d.id);
-        if (error) throw error;
-        fecharModal();
-        await recarregar(true);
-        toast("Distrato atualizado.", "ok");
+        const { error } = await sb.from("distratos").update(dados).eq("id", d.id); if (error) throw error;
+        fecharModal(); await recarregar(true); toast("Distrato atualizado.");
       } else {
-        dados.status = "A corrigir";
-        dados.criado_por = quem();
+        dados.status = "A corrigir"; dados.criado_por = quem();
         dados.historico = addHistorico({}, "Distrato cadastrado.");
-        const { data: novo, error } = await sb.from("distratos").insert(dados).select().single();
+        const { data:novo, error } = await sb.from("distratos").insert(dados).select().single();
         if (error) throw error;
-        fecharModal();
-        State.distratos.unshift(novo);
+        fecharModal(); State.distratos.unshift(novo);
         if (arquivoNovo) await enviarArquivo(novo, arquivoNovo, "original");
-        await recarregar(true);
-        toast("Distrato cadastrado.", "ok");
+        await recarregar(true); toast("Distrato cadastrado.");
       }
     } catch(e){ toast("Erro ao salvar: " + e.message, "err"); }
   });
@@ -1362,49 +1176,42 @@ function formDistrato(id, clientePre){
     try {
       const paths = (d.arquivos || []).map(a => a.path);
       if (paths.length) await sb.storage.from(BUCKET).remove(paths);
-      const { error } = await sb.from("distratos").delete().eq("id", d.id);
-      if (error) throw error;
-      fecharModal();
-      await recarregar(true);
-      toast("Distrato excluído.", "ok");
+      const { error } = await sb.from("distratos").delete().eq("id", d.id); if (error) throw error;
+      fecharModal(); await recarregar(true); toast("Distrato excluído.");
     } catch(e){ toast("Erro: " + e.message, "err"); }
   });
 }
 
-/* ============================================================================
-   MODAL — DETALHE DO DISTRATO (upload / download / status / histórico)
-   ============================================================================ */
+/* --- distrato: ficha --- */
 async function mudarStatus(id, novo){
   const d = State.distratos.find(x => x.id === id);
   if (!d || d.status === novo) return;
-  const patch = { status: novo, historico: addHistorico(d, 'Status alterado de "' + d.status + '" para "' + novo + '".') };
+  const patch = { status:novo, historico: addHistorico(d, 'Situação alterada de "' + d.status + '" para "' + novo + '".') };
   if (novo === "Corrigido")  { patch.corrigido_em = new Date().toISOString(); patch.corrigido_por = quem(); }
-  if (novo === "Finalizado") { patch.finalizado_em = new Date().toISOString(); }
+  if (novo === "Finalizado") patch.finalizado_em = new Date().toISOString();
   if (novo === "A corrigir") { patch.corrigido_em = null; patch.corrigido_por = null; patch.finalizado_em = null; }
   try {
     await atualizarDistrato(id, patch);
-    toast("Status: " + novo, "ok");
-    render();
+    toast("Situação: " + novo); render();
     if ($("#overlay").classList.contains("on")) abrirDistrato(id);
   } catch(e){ toast("Erro: " + e.message, "err"); }
 }
 
-function blocoArquivos(d, tipo, titulo, ajuda){
+function blocoArquivos(d, tipo, titulo, ajuda, destaque){
   const l = (d.arquivos || []).filter(a => a.tipo === tipo);
-  const ultimo = l.length ? l[l.length - 1] : null;
-  return '<div class="sec">' +
-    '<div class="st"><span>' + titulo + '</span><div class="spacer"></div>' +
-      '<button class="btn sm ' + (tipo === "corrigido" ? "green" : "") + '" data-up="' + tipo + '">+ Anexar</button></div>' +
+  const ultimo = l.length ? l[l.length-1] : null;
+  return '<div class="sec' + (destaque ? " destaque" : "") + '">' +
+    '<div class="st"><span>' + titulo + '</span><div class="grow"></div>' +
+      '<button class="btn sm ' + (tipo === "corrigido" ? "primary" : "") + '" data-up="' + tipo + '">+ Anexar</button></div>' +
     (l.length
-      ? '<ul class="filelist">' + l.map((a, i) =>
+      ? '<ul class="files">' + l.map(a =>
           '<li class="' + (a === ultimo && l.length > 1 ? "atual" : "") + '">' +
-            '<span class="fi">' + esc((a.nome.split(".").pop() || "?").toUpperCase().slice(0,4)) + '</span>' +
-            '<span class="fn"><span class="n">' + esc(a.nome) + (a === ultimo && l.length > 1 ? " · atual" : "") + '</span>' +
+            '<span class="ic">' + esc((a.nome.split(".").pop() || "?").toUpperCase().slice(0,4)) + '</span>' +
+            '<span class="nm"><span class="n">' + esc(a.nome) + (a === ultimo && l.length > 1 ? " · atual" : "") + '</span>' +
               '<span class="m">' + fmtTam(a.tamanho) + " · " + fmtDataHora(a.enviado_em) + " · " + esc(a.enviado_por || "") + '</span></span>' +
             '<button class="btn sm" data-dl="' + esc(a.path) + '">Baixar</button>' +
-            '<button class="btn sm ghost" data-rm="' + esc(a.path) + '" title="Remover">✕</button>' +
-          '</li>').join("") + '</ul>'
-      : '<div class="dropzone" data-up="' + tipo + '"><div class="t">Nenhum arquivo</div><div class="s">' + ajuda + '</div></div>');
+            '<button class="btn sm ghost" data-rm="' + esc(a.path) + '" title="Remover">✕</button></li>').join("") + '</ul>'
+      : '<div class="dz" data-up="' + tipo + '"><div class="t">Nenhum arquivo</div><div class="s">' + ajuda + '</div></div>');
 }
 
 function abrirDistrato(id){
@@ -1414,87 +1221,68 @@ function abrirDistrato(id){
   const hist = (Array.isArray(d.historico) ? d.historico : []).slice().reverse();
 
   const acoes = [];
-  if (d.status === "A corrigir")  acoes.push('<button class="btn blue" data-st="Em correção">Marcar em correção</button>');
-  if (d.status !== "Corrigido" && d.status !== "Finalizado") acoes.push('<button class="btn green" data-st="Corrigido">Marcar corrigido</button>');
-  if (d.status === "Corrigido")   acoes.push('<button class="btn" data-st="Finalizado">Finalizar / entregue</button>');
-  if (d.status !== "A corrigir")  acoes.push('<button class="btn ghost" data-st="A corrigir">Reabrir</button>');
+  if (d.status === "A corrigir") acoes.push('<button class="btn" data-st="Em correção">Marcar em correção</button>');
+  if (d.status !== "Corrigido" && d.status !== "Finalizado") acoes.push('<button class="btn ink" data-st="Corrigido">Marcar corrigido</button>');
+  if (d.status === "Corrigido") acoes.push('<button class="btn primary" data-st="Finalizado">Finalizar / entregue</button>');
+  if (d.status !== "A corrigir") acoes.push('<button class="btn ghost" data-st="A corrigir">Reabrir</button>');
 
   const m = abrirModal(
-    '<div class="m-head">' +
-      '<h3>' + esc(d.adquirente || d.tipo_documento) + '</h3>' +
-      badgeStatus(d.status) +
-      (d.prioridade === "Urgente" ? '<span class="badge urgente">urgente</span>' : "") +
-      '<button class="iconbtn" data-fechar>✕</button>' +
-    '</div>' +
-    '<div class="m-body">' +
+    '<div class="mh"><h3>' + esc(d.adquirente || d.tipo_documento) + '</h3>' + tagStatus(d.status) +
+      (d.prioridade === "Urgente" ? '<span class="tag t-urg">urgente</span>' : "") +
+      '<button class="x" data-fechar>✕</button></div>' +
+    '<div class="mb">' +
       '<div class="kv">' +
         '<div><div class="k">Código</div><div class="v mono" style="font-size:12.5px">' + codigo(d) + '</div></div>' +
         '<div><div class="k">Cliente</div><div class="v">' + esc(c ? c.nome : "—") + '</div></div>' +
         '<div><div class="k">Tipo</div><div class="v">' + esc(d.tipo_documento) + '</div></div>' +
-        '<div><div class="k">Empreendimento</div><div class="v' + (d.empreendimento ? '' : ' empty-v') + '">' + esc(d.empreendimento || "—") + '</div></div>' +
-        '<div><div class="k">Quadra / lote</div><div class="v' + (identificaLote(d) ? '' : ' empty-v') + '">' + esc(identificaLote(d) || "—") + '</div></div>' +
-        '<div><div class="k">Contrato</div><div class="v' + (d.contrato ? '' : ' empty-v') + '">' + esc(d.contrato || "—") + '</div></div>' +
-        '<div><div class="k">CPF do adquirente</div><div class="v' + (d.cpf_adquirente ? '' : ' empty-v') + '">' + esc(d.cpf_adquirente || "—") + '</div></div>' +
+        '<div><div class="k">Empreendimento</div><div class="v' + (d.empreendimento ? '' : ' nao') + '">' + esc(d.empreendimento || "—") + '</div></div>' +
+        '<div><div class="k">Quadra / lote</div><div class="v' + (identificaLote(d) ? '' : ' nao') + '">' + esc(identificaLote(d) || "—") + '</div></div>' +
+        '<div><div class="k">Contrato</div><div class="v' + (d.contrato ? '' : ' nao') + '">' + esc(d.contrato || "—") + '</div></div>' +
+        '<div><div class="k">CPF do adquirente</div><div class="v' + (d.cpf_adquirente ? '' : ' nao') + '">' + esc(d.cpf_adquirente || "—") + '</div></div>' +
         '<div><div class="k">Solicitado em</div><div class="v">' + fmtData(d.data_solicitacao) + '</div></div>' +
-        '<div><div class="k">Prazo</div><div class="v">' + badgePrazo(d) + '</div></div>' +
-        '<div><div class="k">Responsável</div><div class="v' + (d.responsavel ? '' : ' empty-v') + '">' + esc(d.responsavel || "—") + '</div></div>' +
+        '<div><div class="k">Prazo</div><div class="v">' + chipPrazo(d) + '</div></div>' +
+        '<div><div class="k">Responsável</div><div class="v' + (d.responsavel ? '' : ' nao') + '">' + esc(d.responsavel || "—") + '</div></div>' +
         (d.corrigido_em ? '<div><div class="k">Corrigido em</div><div class="v">' + fmtDataHora(d.corrigido_em) + '</div></div>' : "") +
       '</div>' +
-
       (d.observacoes ? '<div class="sec"><div class="st">Observações da equipe</div>' +
         '<div style="font-size:12.8px;color:var(--text-2);white-space:pre-wrap">' + esc(d.observacoes) + '</div></div>' : "") +
-
-      blocoArquivos(d, "original", "Minuta enviada para correção", "Anexe aqui o distrato elaborado pela equipe") +
-      blocoArquivos(d, "corrigido", "Versão corrigida pelo Dr. Leilton", "Ao anexar, o distrato é marcado como corrigido") +
-
-      '<div class="sec"><div class="st"><span>Apontamentos da correção</span></div>' +
+      blocoArquivos(d, "original", "Minuta enviada para correção", "Anexe aqui o distrato elaborado pela equipe", false) +
+      blocoArquivos(d, "corrigido", "Versão corrigida pelo Dr. Leilton", "Ao anexar, o distrato é marcado como corrigido", true) +
+      '<div class="sec"><div class="st">Apontamentos da correção</div>' +
         '<textarea id="x-parecer" rows="3" placeholder="O que foi ajustado, o que a equipe deve observar…" ' +
-        'style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-soft);font-size:12.8px;outline:none">' + esc(d.parecer) + '</textarea>' +
-        '<button class="btn sm" id="x-salvar-parecer" style="margin-top:8px">Salvar apontamentos</button></div>' +
-
+        'style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--panel-2);font-size:12.8px;outline:none;font-family:inherit">' + esc(d.parecer) + '</textarea>' +
+        '<button class="btn sm" id="x-salvar-parecer" style="margin-top:9px">Salvar apontamentos</button></div>' +
       '<div class="sec"><div class="st">Histórico</div>' +
-        (hist.length
-          ? '<ul class="timeline">' + hist.map(h =>
-              '<li>' + esc(h.texto) + '<div class="w">' + fmtData(h.data) + " às " + esc(h.hora) + " · " + esc(h.quem) + '</div></li>').join("") + '</ul>'
-          : '<div style="font-size:12px;color:var(--text-3)">Sem registros.</div>') +
-      '</div>' +
+        (hist.length ? '<ul class="tl">' + hist.map(h =>
+            '<li>' + esc(h.texto) + '<div class="w">' + fmtData(h.data) + " às " + esc(h.hora) + " · " + esc(h.quem) + '</div></li>').join("") + '</ul>'
+          : '<div style="font-size:12px;color:var(--text-3)">Sem registros.</div>') + '</div>' +
     '</div>' +
-    '<div class="m-foot">' +
-      '<button class="btn" id="x-editar">Editar</button>' +
-      '<div class="spacer"></div>' + acoes.join("") +
-    '</div>', "lg"
+    '<div class="mf"><button class="btn" id="x-editar">Editar</button><div class="grow"></div>' + acoes.join("") + '</div>', "lg"
   );
 
   $$("[data-st]", m).forEach(b => b.addEventListener("click", () => mudarStatus(d.id, b.dataset.st)));
   $("#x-editar", m).addEventListener("click", () => { fecharModal(); formDistrato(d.id); });
-
   $$("[data-dl]", m).forEach(b => b.addEventListener("click", () => {
-    const a = (d.arquivos || []).find(x => x.path === b.dataset.dl);
-    if (a) baixarArquivo(a);
-  }));
+    const a = (d.arquivos || []).find(x => x.path === b.dataset.dl); if (a) baixarArquivo(a); }));
   $$("[data-rm]", m).forEach(b => b.addEventListener("click", () => {
-    const a = (d.arquivos || []).find(x => x.path === b.dataset.rm);
-    if (a) apagarArquivo(d, a);
-  }));
+    const a = (d.arquivos || []).find(x => x.path === b.dataset.rm); if (a) apagarArquivo(d, a); }));
   $$("[data-up]", m).forEach(b => b.addEventListener("click", () => {
     const inp = document.createElement("input");
     inp.type = "file";
     inp.onchange = () => { if (inp.files[0]) enviarArquivo(d, inp.files[0], b.dataset.up); };
     inp.click();
   }));
-
   $("#x-salvar-parecer", m).addEventListener("click", async () => {
     const txt = $("#x-parecer", m).value.trim();
     try {
-      await atualizarDistrato(d.id, { parecer: txt || null, historico: addHistorico(d, "Apontamentos da correção atualizados.") });
-      toast("Apontamentos salvos.", "ok");
-      render();
+      await atualizarDistrato(d.id, { parecer:txt||null, historico: addHistorico(d, "Apontamentos da correção atualizados.") });
+      toast("Apontamentos salvos."); render();
     } catch(e){ toast("Erro: " + e.message, "err"); }
   });
 }
 
 /* ============================================================================
-   TOPO / TEMA / ATALHOS
+   TOPO E INICIALIZAÇÃO
    ============================================================================ */
 $("#btn-novo").addEventListener("click", () => formDistrato(null));
 $("#btn-reload").addEventListener("click", () => recarregar(false));
@@ -1504,30 +1292,25 @@ $("#btn-tema").addEventListener("click", () => {
   document.documentElement.dataset.theme = novo;
   try { localStorage.setItem(LS_TEMA, novo); } catch(e){}
 });
-try {
-  const t = localStorage.getItem(LS_TEMA);
-  if (t) document.documentElement.dataset.theme = t;
-} catch(e){}
+try { document.documentElement.dataset.theme = localStorage.getItem(LS_TEMA) || "light"; }
+catch(e){ document.documentElement.dataset.theme = "light"; }
 
-/* ============================================================================
-   INICIALIZAÇÃO
-   ============================================================================ */
 async function iniciarApp(){
   carregando(true, "Carregando distratos…");
-  try {
-    await carregarTudo();
-  } catch(e){
+  try { await carregarTudo(); }
+  catch(e){
     carregando(false);
     if (/does not exist|schema cache|relation/i.test(e.message || "")) {
-      telaSetup("As tabelas não existem nesse projeto. Rode o schema_supabase.sql no SQL Editor do Supabase.");
-      return;
+      telaSetup("As tabelas não existem nesse projeto. Rode o schema_supabase.sql."); return;
     }
     toast("Erro ao carregar: " + e.message, "err");
   }
   $("#setup-screen").classList.remove("on");
   $("#login-screen").classList.remove("on");
   $("#app").classList.add("on");
-  $("#who").textContent = (State.user && State.user.email) || "";
+  const email = (State.user && State.user.email) || "";
+  $("#em").textContent = email;
+  $("#av").textContent = (email[0] || "?").toUpperCase();
   render();
   carregando(false);
 }
