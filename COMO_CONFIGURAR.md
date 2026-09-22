@@ -18,16 +18,16 @@ dados continuam vindo da nuvem, então precisa de internet de qualquer forma.
 
 1. **+ Novo distrato** → escolhe o cliente (loteamento) e preenche adquirente, quadra/lote,
    contrato e o **prazo** para correção. Já dá para anexar a minuta na mesma tela.
-2. O distrato nasce como **A corrigir** e entra na *Fila de correção* do painel.
+2. O distrato nasce na coluna **A corrigir** do painel.
 3. Marcar como **Urgente** joga o item para o topo da fila.
 
 ### Dr. Leilton
 
-1. Abre o sistema e vê no painel tudo que está esperando por ele, ordenado por prazo —
-   atrasado primeiro, depois o que vence hoje.
+1. Abre o sistema e vê na coluna **A corrigir** tudo que está esperando por ele,
+   ordenado por prazo — urgente primeiro, depois atrasado, depois o que vence hoje.
 2. Clica no distrato, **Baixar** a minuta, corrige no Word.
 3. Em *Versão corrigida pelo Dr. Leilton*, clica em **+ Anexar** e sobe o arquivo.
-   O status muda sozinho para **Corrigido** e o item passa para a coluna da direita.
+   O cartão muda sozinho para a coluna **Corrigido**.
 4. Se precisar, escreve em *Apontamentos da correção* o que a equipe deve observar.
 
 ### Depois
@@ -42,7 +42,9 @@ dados continuam vindo da nuvem, então precisa de internet de qualquer forma.
 - **Várias versões do mesmo arquivo**: pode anexar quantas quiser. A mais recente fica
   marcada como *atual*; as anteriores continuam disponíveis para consulta.
 - **Busca** (topo): procura por adquirente, lote, contrato, empreendimento ou código.
-- **Filtros rápidos** (menu lateral): para corrigir, em correção, corrigidos, atrasados.
+- **Quadro de colunas**: o painel mostra o distrato caminhando de *A corrigir* até
+  *Finalizado*. Dá para **arrastar o cartão** de uma coluna para outra, e a situação muda.
+- **Atalhos**: clicar num dos quatro números do topo do painel filtra a lista de distratos.
 - **Exportar CSV**: na tela de Distratos, gera uma planilha do que estiver filtrado.
 - **Tipos de documento**: além de Distrato, dá para lançar Notificação extrajudicial,
   Rescisão, Aditivo ou Outro — é o mesmo controle de prazo.
