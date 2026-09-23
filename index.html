@@ -800,7 +800,7 @@ function renderTabs(){
     aba("distratos", "Distratos", State.distratos.length, State.view === "distratos") +
     aba("tarefas", "Extrajudiciais", State.tarefas.filter(tarefaPendente).length,
         State.view === "tarefas", State.tarefas.some(tarefaAtrasada)) +
-    aba("clientes", "Clientes", State.clientes.length, State.view === "clientes" || State.view === "cliente");
+    aba("clientes", "Loteamentos", State.clientes.length, State.view === "clientes" || State.view === "cliente");
   $$("#tabs .tab").forEach(b => b.addEventListener("click", () => {
     State.filtro = { cliente:"", status:"", tipo:"", prazo:"" };
     irPara(b.dataset.tab);
