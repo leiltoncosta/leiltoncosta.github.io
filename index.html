@@ -1542,6 +1542,7 @@ function abrirTarefa(id){
         'style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-sm);' +
         'background:var(--panel);font-size:12.8px;outline:none;font-family:inherit">' + esc(t.resultado) + '</textarea>' +
         '<button class="btn sm" id="tx-salvar-res" style="margin-top:9px">Salvar resultado</button></div>' +
+      blocoAgenda(t, true) +
       blocoArquivos(t, "anexo", "Comprovantes e protocolos", "Anexe aqui o protocolo, a certidão ou o comprovante", false) +
       '<div class="sec"><div class="st">Histórico</div>' +
         (hist.length ? '<ul class="tl">' + hist.map(h =>
@@ -1550,6 +1551,7 @@ function abrirTarefa(id){
     '</div>' +
     '<div class="mf"><button class="btn" id="tx-editar">Editar</button><div class="grow"></div>' + acoes.join("") + '</div>', "lg");
 
+  ligarAgenda(m, t, true);
   $$("[data-tst]", m).forEach(b => b.addEventListener("click", () => mudarStatusTarefa(t.id, b.dataset.tst)));
   $("#tx-editar", m).addEventListener("click", () => { fecharModal(); formTarefa(t.id); });
   $$("[data-dl]", m).forEach(b => b.addEventListener("click", () => {
@@ -1570,6 +1572,135 @@ function abrirTarefa(id){
       toast("Resultado salvo."); render();
     } catch(e){ toast("Erro: " + e.message, "err"); }
   });
+}
+
+/* ============================================================================
+   AGENDA — joga o prazo na agenda de quem usa o sistema
+   Sao duas saidas porque nem todo mundo usa o mesmo calendario: o link do
+   Google Agenda cai direto na conta (e portanto no celular), e o .ics atende
+   Outlook e iPhone. O compromisso e uma copia do estado de hoje: se o prazo
+   mudar aqui depois, o da agenda nao muda junto.
+   ============================================================================ */
+const FUSO = "America/Fortaleza";
+
+function soDigitos(iso){ return String(iso).slice(0,10).replace(/-/g, ""); }
+function diaSeguinte(iso){
+  const d = new Date(String(iso).slice(0,10) + "T00:00:00");
+  d.setDate(d.getDate() + 1);
+  return d.getFullYear() + String(d.getMonth()+1).padStart(2,"0") + String(d.getDate()).padStart(2,"0");
+}
+
+/* Monta o compromisso a partir de um distrato, quitacao ou extrajudicial. */
+function eventoDe(reg, ehTarefa){
+  if (ehTarefa) {
+    if (!reg.data) return null;
+    const onde = [reg.local, reg.orgao].filter(Boolean).join(" · ");
+    return {
+      titulo: reg.titulo + (reg.cliente_id ? " — " + nomeCliente(reg.cliente_id) : ""),
+      data: reg.data, hora: reg.hora || null, local: [onde, reg.endereco].filter(Boolean).join(" — "),
+      detalhes: [codigoTarefa(reg), onde,
+                 reg.responsavel ? "Responsável: " + reg.responsavel : "",
+                 reg.observacoes || "",
+                 "Sistema: https://leiltoncosta.github.io"].filter(Boolean).join("\n"),
+      id: reg.id
+    };
+  }
+  if (!reg.prazo) return null;
+  const M = MODULOS[reg.__mod] || MODULOS.distratos;
+  const lote = identificaLote(reg);
+  return {
+    titulo: "Prazo: " + M.singular + " " + codigo(reg) +
+            (reg.adquirente ? " — " + reg.adquirente : ""),
+    data: reg.prazo, hora: null,
+    local: nomeCliente(reg.cliente_id),
+    detalhes: [codigo(reg) + " · " + reg.tipo_documento,
+               "Loteamento: " + nomeCliente(reg.cliente_id),
+               lote ? "Quadra/lote: " + lote : "",
+               reg.contrato ? "Contrato: " + reg.contrato : "",
+               reg.responsavel ? "Responsável: " + reg.responsavel : "",
+               "Situação no momento: " + reg.status,
+               "Sistema: https://leiltoncosta.github.io"].filter(Boolean).join("\n"),
+    id: reg.id
+  };
+}
+
+function linkGoogleAgenda(ev){
+  let datas;
+  if (ev.hora) {
+    const ini = soDigitos(ev.data) + "T" + ev.hora.replace(":", "") + "00";
+    const h = String(Math.min(parseInt(ev.hora.slice(0,2), 10) + 1, 23)).padStart(2, "0");
+    datas = ini + "/" + soDigitos(ev.data) + "T" + h + ev.hora.slice(3,5) + "00";
+  } else {
+    datas = soDigitos(ev.data) + "/" + diaSeguinte(ev.data);   // dia inteiro
+  }
+  const p = new URLSearchParams({
+    action: "TEMPLATE", text: ev.titulo, dates: datas,
+    details: ev.detalhes, location: ev.local || "", ctz: FUSO
+  });
+  return "https://calendar.google.com/calendar/render?" + p.toString();
+}
+
+function escapaICS(t){
+  return String(t).replace(/\\/g, "\\\\").replace(/;/g, "\\;")
+                  .replace(/,/g, "\\,").replace(/\n/g, "\\n");
+}
+function baixarICS(ev){
+  const agora = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+  let quando;
+  if (ev.hora) {
+    const ini = soDigitos(ev.data) + "T" + ev.hora.replace(":", "") + "00";
+    const h = String(Math.min(parseInt(ev.hora.slice(0,2), 10) + 1, 23)).padStart(2, "0");
+    quando = "DTSTART;TZID=" + FUSO + ":" + ini + "\r\n" +
+             "DTEND;TZID=" + FUSO + ":" + soDigitos(ev.data) + "T" + h + ev.hora.slice(3,5) + "00";
+  } else {
+    quando = "DTSTART;VALUE=DATE:" + soDigitos(ev.data) + "\r\n" +
+             "DTEND;VALUE=DATE:" + diaSeguinte(ev.data);
+  }
+  const ics = [
+    "BEGIN:VCALENDAR", "VERSION:2.0",
+    "PRODID:-//Leilton Costa Advocacia//Controle de Distratos//PT-BR",
+    "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    "UID:" + ev.id + "@leiltoncosta.github.io",
+    "DTSTAMP:" + agora, quando,
+    "SUMMARY:" + escapaICS(ev.titulo),
+    "DESCRIPTION:" + escapaICS(ev.detalhes),
+    ev.local ? "LOCATION:" + escapaICS(ev.local) : "",
+    "BEGIN:VALARM", "TRIGGER:-PT9H", "ACTION:DISPLAY",
+    "DESCRIPTION:" + escapaICS(ev.titulo), "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR"
+  ].filter(Boolean).join("\r\n");
+
+  const url = URL.createObjectURL(new Blob([ics], { type:"text/calendar;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = "prazo-" + soDigitos(ev.data) + ".ics"; a.click();
+  URL.revokeObjectURL(url);
+  toast("Arquivo de agenda baixado.");
+}
+
+/* Bloco que entra nas duas fichas. */
+function blocoAgenda(reg, ehTarefa){
+  const ev = eventoDe(reg, ehTarefa);
+  if (!ev) return '<div class="sec"><div class="st">Avisar no celular</div>' +
+    '<div style="font-size:12px;color:var(--text-3)">Defina ' +
+    (ehTarefa ? "uma data" : "um prazo") + ' para poder jogar na agenda.</div></div>';
+  return '<div class="sec"><div class="st"><span>Avisar no celular</span></div>' +
+    '<div style="display:flex;gap:9px;flex-wrap:wrap">' +
+      '<button class="btn sm" data-agenda="google">Adicionar ao Google Agenda</button>' +
+      '<button class="btn sm ghost" data-agenda="ics">Baixar para Outlook / iPhone</button>' +
+    '</div>' +
+    '<div style="font-size:11px;color:var(--text-3);margin-top:8px;line-height:1.5">' +
+      'O compromisso entra na conta que você escolher e aparece no celular que usa essa mesma ' +
+      'conta. É uma cópia: se o prazo mudar aqui depois, o da agenda não muda junto.</div></div>';
+}
+
+function ligarAgenda(m, reg, ehTarefa){
+  const ev = eventoDe(reg, ehTarefa);
+  if (!ev) return;
+  $$("[data-agenda]", m).forEach(b => b.addEventListener("click", () => {
+    if (b.dataset.agenda === "google") window.open(linkGoogleAgenda(ev), "_blank");
+    else baixarICS(ev);
+  }));
 }
 
 /* ============================================================================
@@ -1851,6 +1982,7 @@ function abrirDoc(id){
         '<div style="font-size:12.8px;color:var(--text-2);white-space:pre-wrap">' + esc(d.observacoes) + '</div></div>' : "") +
       blocoArquivos(d, "original", "Minuta enviada para correção", "Anexe aqui o documento elaborado pela equipe", false) +
       blocoArquivos(d, "corrigido", "Versão corrigida pelo Dr. Leilton", "Ao anexar, o registro é marcado como corrigido", true) +
+      blocoAgenda(d, false) +
       '<div class="sec"><div class="st">Apontamentos da correção</div>' +
         '<textarea id="x-parecer" rows="3" placeholder="O que foi ajustado, o que a equipe deve observar…" ' +
         'style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--panel-2);font-size:12.8px;outline:none;font-family:inherit">' + esc(d.parecer) + '</textarea>' +
@@ -1863,6 +1995,7 @@ function abrirDoc(id){
     '<div class="mf"><button class="btn" id="x-editar">Editar</button><div class="grow"></div>' + acoes.join("") + '</div>', "lg"
   );
 
+  ligarAgenda(m, d, false);
   $$("[data-st]", m).forEach(b => b.addEventListener("click", () => mudarStatus(d.id, b.dataset.st)));
   $("#x-editar", m).addEventListener("click", () => { fecharModal(); formDoc(mk, d.id); });
   $$("[data-dl]", m).forEach(b => b.addEventListener("click", () => {

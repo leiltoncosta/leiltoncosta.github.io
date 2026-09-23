@@ -81,6 +81,12 @@ aparece no Painel, logo abaixo do quadro de colunas.
 - **Exportar CSV**: na tela de Distratos, gera uma planilha do que estiver filtrado.
 - **Tipos de documento**: além de Distrato, dá para lançar Notificação extrajudicial,
   Rescisão, Aditivo ou Outro — é o mesmo controle de prazo.
+- **Avisar no celular**: dentro de cada distrato, quitação ou extrajudicial há o bloco
+  *Avisar no celular*. **Adicionar ao Google Agenda** abre o Google já preenchido — ao
+  confirmar, o compromisso cai na sua conta e aparece no celular que usa essa mesma conta,
+  com lembrete. **Baixar para Outlook / iPhone** gera um arquivo de agenda, para quem não
+  usa Google. É uma cópia do momento: se o prazo mudar aqui depois, o da agenda não muda
+  junto, e é preciso refazer.
 - **Tema claro/escuro**: botão da lua, no topo.
 - **Limite de 25 MB** por arquivo anexado.
 
