@@ -59,9 +59,13 @@ aparece no Painel, logo abaixo do quadro de colunas.
 - **Várias versões do mesmo arquivo**: pode anexar quantas quiser. A mais recente fica
   marcada como *atual*; as anteriores continuam disponíveis para consulta.
 - **Busca** (topo): procura por adquirente, lote, contrato, empreendimento ou código.
-- **Quadro de colunas**: o painel mostra o distrato caminhando de *A corrigir* até
-  *Finalizado*. Dá para **arrastar o cartão** de uma coluna para outra, e a situação muda.
-- **Atalhos**: clicar num dos quatro números do topo do painel filtra a lista de distratos.
+- **Painel**: é um relatório. Mostra dois gráficos de rosca lado a lado — um de distratos,
+  outro de extrajudiciais — com a divisão por situação, quantidade e percentual de cada
+  fatia. Em cima, quatro números: pendentes de cada lado, atrasados e vencendo hoje.
+  Clicar em qualquer número, fatia da legenda ou botão *Abrir* leva à lista já filtrada.
+- **Quadro de colunas**: fica na aba **Distratos**, no botão *Quadro* ao lado dos filtros.
+  O distrato caminha de *A corrigir* até *Finalizado*, e dá para **arrastar o cartão** de
+  uma coluna para outra para mudar a situação. O botão *Lista* volta à tabela.
 - **Exportar CSV**: na tela de Distratos, gera uma planilha do que estiver filtrado.
 - **Tipos de documento**: além de Distrato, dá para lançar Notificação extrajudicial,
   Rescisão, Aditivo ou Outro — é o mesmo controle de prazo.

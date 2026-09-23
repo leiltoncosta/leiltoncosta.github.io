@@ -345,6 +345,35 @@ td .dim{color:var(--text-3);font-size:11.5px}
 #loading .t{font-size:12.5px;color:var(--text-3)}
 
 /* ============================================================
+   RELATORIO — graficos de rosca
+   ============================================================ */
+.relatorio{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+@media(max-width:900px){.relatorio{grid-template-columns:1fr}}
+.rosca{display:flex;align-items:center;gap:22px}
+.rosca > svg{flex:none;width:132px;height:132px}
+.rosca .legenda{flex:1;min-width:0}
+.leg{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:12.5px;
+  border-bottom:1px solid var(--border-soft);cursor:pointer;transition:var(--t)}
+.leg:last-child{border-bottom:none}
+.leg:hover{color:var(--accent-deep)}
+.leg .sw{width:11px;height:11px;border-radius:3px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.leg .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leg .qt{font-weight:700;font-variant-numeric:tabular-nums}
+.leg .pc{color:var(--text-3);font-size:11.5px;width:44px;text-align:right;font-variant-numeric:tabular-nums}
+.rosca .vazia{font-size:12px;color:var(--text-3);font-style:italic}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
+.seg button{border:none;background:var(--panel);padding:7px 15px;font-size:12.3px;font-weight:600;color:var(--text-2);transition:var(--t)}
+.seg button:hover{background:var(--panel-3);color:var(--text)}
+.seg button.on{background:var(--ink);color:var(--bone)}
+.alerta-faixa{display:flex;align-items:center;gap:13px;background:var(--alert-soft);
+  border:1px solid color-mix(in srgb,var(--alert) 35%,transparent);border-radius:var(--r);
+  padding:13px 17px;margin-bottom:18px}
+.alerta-faixa .ico{width:30px;height:30px;border-radius:50%;background:var(--alert);color:var(--bone);
+  display:flex;align-items:center;justify-content:center;flex:none;font-weight:700;font-size:15px}
+.alerta-faixa .txt{flex:1;font-size:12.8px;color:var(--text)}
+.alerta-faixa .txt b{color:var(--alert)}
+
+/* ============================================================
    TAREFAS EXTRAJUDICIAIS
    ============================================================ */
 .tgrupo{margin-bottom:20px}
@@ -483,7 +512,7 @@ const LOCAIS = ["Cartório de Notas", "Cartório de Registro de Imóveis", "Pref
 let sb = null;
 const State = {
   user:null, clientes:[], distratos:[], tarefas:[], view:"painel", clienteAberto:null,
-  busca:"", filtro:{ cliente:"", status:"", tipo:"", prazo:"" },
+  busca:"", vistaDistratos:"lista", filtro:{ cliente:"", status:"", tipo:"", prazo:"" },
   filtroT:{ cliente:"", status:"", local:"" }
 };
 
@@ -795,68 +824,178 @@ function cartao(d){
       (corr ? '<span class="chip ok">corrigido</span>' : "") +
     '</div></div>';
 }
+/* ============================================================================
+   PAINEL — relatório com gráficos de rosca
+   Rampas validadas com o script do guia de visualização (ordinal, uma matiz,
+   contraste da ponta clara e separação para daltonismo conferidos por medição).
+   ============================================================================ */
+const RAMPA = {
+  light: ["#D9AB77", "#AD7A4E", "#6E4E33", "#2E2014"],
+  dark:  ["#6B4A31", "#A87650", "#DDAC74", "#F8EFE2"]
+};
+function rampaAtual(){
+  return RAMPA[document.documentElement.dataset.theme === "dark" ? "dark" : "light"];
+}
+
+/* Rosca: uma matiz, do claro ao escuro na ordem das etapas.
+   A identidade nunca depende só da cor — a legenda ao lado nomeia cada fatia
+   e mostra quantidade e percentual, servindo também de tabela. */
+function rosca(fatias, filtros){
+  const cores = rampaAtual();
+  const total = fatias.reduce((a, f) => a + f.valor, 0);
+  const R = 45, LARG = 18, C = 2 * Math.PI * R;
+  const GAP = fatias.filter(f => f.valor > 0).length > 1 ? 2.5 : 0;
+
+  let acc = 0;
+  const segmentos = total
+    ? fatias.map((f, i) => {
+        if (!f.valor) return "";
+        const frac = f.valor / total;
+        const comp = Math.max(frac * C - GAP, 0.8);
+        const seg = '<circle cx="60" cy="60" r="' + R + '" fill="none" stroke="' + cores[i] + '" ' +
+          'stroke-width="' + LARG + '" stroke-dasharray="' + comp.toFixed(2) + ' ' + (C - comp).toFixed(2) + '" ' +
+          'stroke-dashoffset="' + (-acc * C).toFixed(2) + '" transform="rotate(-90 60 60)">' +
+          '<title>' + esc(f.rotulo) + ': ' + f.valor + ' (' + Math.round(frac * 100) + '%)</title></circle>';
+        acc += frac;
+        return seg;
+      }).join("")
+    : '<circle cx="60" cy="60" r="' + R + '" fill="none" stroke="var(--border)" stroke-width="' + LARG + '"/>';
+
+  const svg = '<svg viewBox="0 0 120 120" role="img" aria-label="Distribuição por situação">' +
+      segmentos +
+      '<text x="60" y="58" text-anchor="middle" font-family="var(--font-display)" font-size="26" ' +
+        'font-weight="600" fill="var(--text)">' + total + '</text>' +
+      '<text x="60" y="73" text-anchor="middle" font-size="8.5" letter-spacing="1.1" ' +
+        'fill="var(--text-3)">' + (total === 1 ? "REGISTRO" : "REGISTROS") + '</text>' +
+    '</svg>';
+
+  const legenda = total
+    ? fatias.map((f, i) =>
+        '<div class="leg"' + (filtros ? ' data-f="' + esc(f.rotulo) + '"' : "") + '>' +
+          '<span class="sw" style="background:' + cores[i] + '"></span>' +
+          '<span class="nm">' + esc(f.rotulo) + '</span>' +
+          '<span class="qt">' + f.valor + '</span>' +
+          '<span class="pc">' + (total ? Math.round(f.valor / total * 100) : 0) + '%</span>' +
+        '</div>').join("")
+    : '<div class="vazia">Nada cadastrado ainda.</div>';
+
+  return '<div class="rosca">' + svg + '<div class="legenda">' + legenda + '</div></div>';
+}
+
+function plural(n, singular, plural_){ return n + " " + (n === 1 ? singular : plural_); }
+
 function renderPainel(){
-  const ds = State.distratos;
-  const n = s => ds.filter(d => d.status === s).length;
-  const atrasados = ds.filter(estaAtrasado);
-  const hoje = ds.filter(d => pendente(d) && diasAte(d.prazo) === 0);
+  const ds = State.distratos, ts = State.tarefas;
+  const nD = s => ds.filter(d => d.status === s).length;
+  const nT = s => ts.filter(t => t.status === s).length;
+
+  const pendD = ds.filter(pendente);
+  const pendT = ts.filter(tarefaPendente);
+  const atrD  = ds.filter(estaAtrasado);
+  const atrT  = ts.filter(tarefaAtrasada);
+  const hojeD = ds.filter(d => pendente(d) && diasAte(d.prazo) === 0);
+  const hojeT = ts.filter(t => tarefaPendente(t) && diasAte(t.data) === 0);
+  const atrasoTotal = atrD.length + atrT.length;
+  const hojeTotal   = hojeD.length + hojeT.length;
 
   const strip =
     '<div class="strip">' +
-      '<div class="s bronze" data-f="A corrigir"><div class="k">Para corrigir</div><div class="v">' + n("A corrigir") + '</div><div class="d">aguardando o Dr. Leilton</div></div>' +
-      '<div class="s" data-f="Em correção"><div class="k">Em correção</div><div class="v">' + n("Em correção") + '</div><div class="d">já em análise</div></div>' +
-      '<div class="s" data-f="Corrigido"><div class="k">Corrigidos</div><div class="v">' + n("Corrigido") + '</div><div class="d">prontos para devolver</div></div>' +
-      '<div class="s alerta" data-f="__atrasados"><div class="k">Atrasados</div><div class="v">' + atrasados.length + '</div><div class="d">' + hoje.length + ' vencendo hoje</div></div>' +
+      '<div class="s bronze" data-ir="distratos"><div class="k">Distratos pendentes</div>' +
+        '<div class="v">' + pendD.length + '</div><div class="d">de ' + ds.length + ' no total</div></div>' +
+      '<div class="s bronze" data-ir="tarefas"><div class="k">Extrajudiciais pendentes</div>' +
+        '<div class="v">' + pendT.length + '</div><div class="d">de ' + ts.length + ' no total</div></div>' +
+      '<div class="s' + (atrasoTotal ? " alerta" : "") + '" data-ir="atrasados"><div class="k">Atrasados</div>' +
+        '<div class="v">' + atrasoTotal + '</div>' +
+        '<div class="d">' + plural(atrD.length, "distrato", "distratos") + ' · ' +
+          plural(atrT.length, "extrajudicial", "extrajudiciais") + '</div></div>' +
+      '<div class="s" data-ir="hoje"><div class="k">Vencendo hoje</div>' +
+        '<div class="v">' + hojeTotal + '</div>' +
+        '<div class="d">' + plural(hojeD.length, "distrato", "distratos") + ' · ' +
+          plural(hojeT.length, "extrajudicial", "extrajudiciais") + '</div></div>' +
     '</div>';
 
-  const colunas = STATUS.map(st => {
-    const lista = ordenaFila(ds.filter(d => d.status === st));
-    return '<div class="col" data-col="' + esc(st) + '">' +
-      '<div class="ch"><span class="pip" style="background:' + corStatus(st) + '"></span>' +
-        '<h3>' + esc(st) + '</h3><span class="n">' + lista.length + '</span></div>' +
-      '<div class="cb">' +
-        (lista.length ? lista.map(cartao).join("") : '<div class="vazio">Arraste um cartão para cá</div>') +
-      '</div></div>';
-  }).join("");
+  const faixa = atrasoTotal
+    ? '<div class="alerta-faixa"><span class="ico">!</span><span class="txt">' +
+        '<b>' + atrasoTotal + (atrasoTotal === 1 ? ' registro está' : ' registros estão') + ' com prazo vencido.</b> ' +
+        (atrD.length ? plural(atrD.length, "distrato aguardando correção", "distratos aguardando correção") : "") +
+        (atrD.length && atrT.length ? " e " : "") +
+        (atrT.length ? plural(atrT.length, "diligência não cumprida", "diligências não cumpridas") : "") +
+        '.</span>' +
+        '<button class="btn sm" data-ir="atrasados">Ver</button></div>'
+    : "";
+
+  const relatorio =
+    '<div class="relatorio">' +
+      '<div class="card" style="margin:0"><div class="ch"><h3>Distratos</h3>' +
+        '<span class="n">' + ds.length + '</span><div class="grow"></div>' +
+        '<button class="btn sm" data-ir="distratos">Abrir</button></div>' +
+        '<div class="cb">' + rosca(STATUS.map(x => ({ rotulo:x, valor:nD(x) })), true) + '</div></div>' +
+      '<div class="card" style="margin:0"><div class="ch"><h3>Extrajudiciais</h3>' +
+        '<span class="n">' + ts.length + '</span><div class="grow"></div>' +
+        '<button class="btn sm" data-ir="tarefas">Abrir</button></div>' +
+        '<div class="cb">' + rosca(STATUS_TAREFA.map(x => ({ rotulo:x, valor:nT(x) })), false) + '</div></div>' +
+    '</div>';
 
   const porCliente = State.clientes.map(c => {
     const l = ds.filter(d => d.cliente_id === c.id);
-    return { c:c, total:l.length,
+    const lt = ts.filter(t => t.cliente_id === c.id);
+    return { c:c, total:l.length + lt.length, distratos:l.length,
       corrigir:l.filter(d => d.status === "A corrigir").length,
-      emcorr:l.filter(d => d.status === "Em correção").length,
       pronto:l.filter(d => d.status === "Corrigido").length,
-      atraso:l.filter(estaAtrasado).length };
-  }).filter(x => x.total > 0).sort((a,b) => (b.corrigir+b.emcorr) - (a.corrigir+a.emcorr));
+      extra:lt.filter(tarefaPendente).length,
+      atraso:l.filter(estaAtrasado).length + lt.filter(tarefaAtrasada).length };
+  }).filter(x => x.total > 0).sort((a,b) => (b.corrigir + b.extra) - (a.corrigir + a.extra));
+
+  const tabela = porCliente.length
+    ? '<div class="card"><div class="ch"><h3>Resumo por cliente</h3>' +
+      '<span class="n">' + porCliente.length + '</span></div><div class="cb flush">' +
+      '<table><thead><tr><th>Cliente</th><th>Distratos</th><th>A corrigir</th><th>Corrigidos</th>' +
+      '<th>Extrajudiciais pendentes</th><th>Atrasados</th></tr></thead><tbody>' +
+      porCliente.map(x =>
+        '<tr data-cliente="' + x.c.id + '"><td class="strong">' + esc(x.c.nome) + '</td>' +
+        '<td>' + x.distratos + '</td>' +
+        '<td>' + (x.corrigir ? '<span class="tag t-corrigir">' + x.corrigir + '</span>' : '<span class="dim">—</span>') + '</td>' +
+        '<td>' + (x.pronto ? '<span class="tag t-corrigido">' + x.pronto + '</span>' : '<span class="dim">—</span>') + '</td>' +
+        '<td>' + (x.extra ? '<span class="tag t-emcorrecao">' + x.extra + '</span>' : '<span class="dim">—</span>') + '</td>' +
+        '<td>' + (x.atraso ? '<span class="tag t-alerta">' + x.atraso + '</span>' : '<span class="dim">—</span>') + '</td></tr>').join("") +
+      '</tbody></table></div></div>'
+    : (ds.length || ts.length ? "" :
+      '<div class="card"><div class="empty"><div class="mk">LC</div>' +
+      '<p>Nada cadastrado ainda. Lance o primeiro distrato ou a primeira extrajudicial ' +
+      'para o painel ganhar vida.</p>' +
+      '<button class="btn primary" data-novo="1">+ Novo distrato</button></div></div>');
 
   $("#content").innerHTML =
     '<div class="phead"><h2>Painel</h2>' +
-      '<div class="sub">arraste o cartão entre as colunas para mudar a situação</div></div>' +
-    strip +
-    '<div class="board">' + colunas + '</div>' +
-    blocoTarefasPainel() +
-    (porCliente.length
-      ? '<div class="card" style="margin-top:20px"><div class="ch"><h3>Resumo por cliente</h3>' +
-        '<span class="n">' + porCliente.length + '</span></div><div class="cb flush">' +
-        '<table><thead><tr><th>Cliente</th><th>Para corrigir</th><th>Em correção</th><th>Corrigidos</th><th>Atrasados</th><th>Total</th></tr></thead><tbody>' +
-        porCliente.map(x =>
-          '<tr data-cliente="' + x.c.id + '"><td class="strong">' + esc(x.c.nome) + '</td>' +
-          '<td>' + (x.corrigir ? '<span class="tag t-corrigir">' + x.corrigir + '</span>' : '<span class="dim">—</span>') + '</td>' +
-          '<td>' + (x.emcorr ? '<span class="tag t-emcorrecao">' + x.emcorr + '</span>' : '<span class="dim">—</span>') + '</td>' +
-          '<td>' + (x.pronto ? '<span class="tag t-corrigido">' + x.pronto + '</span>' : '<span class="dim">—</span>') + '</td>' +
-          '<td>' + (x.atraso ? '<span class="tag t-alerta">' + x.atraso + '</span>' : '<span class="dim">—</span>') + '</td>' +
-          '<td class="strong">' + x.total + '</td></tr>').join("") +
-        '</tbody></table></div></div>'
-      : (ds.length ? "" :
-        '<div class="card" style="margin-top:20px"><div class="empty"><div class="mk">LC</div>' +
-        '<p>Nenhum distrato ainda. Cadastre um cliente e lance o primeiro para o painel ganhar vida.</p>' +
-        '<button class="btn primary" data-novo-cliente="1">+ Novo cliente</button></div></div>'));
+      '<div class="sub">visão geral de distratos e extrajudiciais</div></div>' +
+    faixa + strip + relatorio + blocoTarefasPainel() + tabela;
 
-  $$("[data-f]").forEach(el => el.addEventListener("click", () => {
+  $$("[data-ir]").forEach(el => el.addEventListener("click", () => {
+    const alvo = el.dataset.ir;
+    if (alvo === "distratos") { State.filtro = { cliente:"", status:"", tipo:"", prazo:"" }; irPara("distratos"); }
+    else if (alvo === "tarefas") { State.filtroT = { cliente:"", status:"", local:"" }; irPara("tarefas"); }
+    else if (alvo === "atrasados") { State.filtro = { cliente:"", status:"__atrasados", tipo:"", prazo:"" }; irPara("distratos"); }
+    else if (alvo === "hoje") { State.filtro = { cliente:"", status:"__pendentes", tipo:"", prazo:"hoje" }; irPara("distratos"); }
+  }));
+  $$(".leg[data-f]").forEach(el => el.addEventListener("click", () => {
     State.filtro = { cliente:"", status:el.dataset.f, tipo:"", prazo:"" };
     irPara("distratos");
   }));
-  ligarQuadro();
   ligarComuns();
+}
+
+/* Quadro de colunas: o distrato caminha de "A corrigir" ate "Finalizado".
+   Vive na aba Distratos, porque o painel passou a ser relatorio. */
+function quadroDistratos(lista){
+  return '<div class="board">' + STATUS.map(st => {
+    const col = ordenaFila(lista.filter(d => d.status === st));
+    return '<div class="col" data-col="' + esc(st) + '">' +
+      '<div class="ch"><span class="pip" style="background:' + corStatus(st) + '"></span>' +
+        '<h3>' + esc(st) + '</h3><span class="n">' + col.length + '</span></div>' +
+      '<div class="cb">' +
+        (col.length ? col.map(cartao).join("") : '<div class="vazio">Arraste um cartão para cá</div>') +
+      '</div></div>';
+  }).join("") + '</div>';
 }
 
 /* --- arrastar cartões entre colunas --- */
@@ -911,9 +1050,15 @@ function renderDistratos(){
       '<select id="f-prazo">' + opt("","Qualquer prazo",f.prazo) + opt("hoje","Vence hoje",f.prazo) +
         opt("semana","Próximos 7 dias",f.prazo) + opt("vencidos","Vencidos",f.prazo) + '</select>' +
       '<div class="grow"></div>' +
+      '<div class="seg" id="f-vista">' +
+        '<button data-vista="lista"' + (State.vistaDistratos === "lista" ? ' class="on"' : "") + '>Lista</button>' +
+        '<button data-vista="quadro"' + (State.vistaDistratos === "quadro" ? ' class="on"' : "") + '>Quadro</button>' +
+      '</div>' +
       '<button class="btn sm" id="f-limpar">Limpar filtros</button>' +
       '<button class="btn sm" id="f-csv">Exportar CSV</button>' +
     '</div>' +
+    (State.vistaDistratos === "quadro" ? quadroDistratos(lista) : "") +
+    (State.vistaDistratos === "quadro" ? "" :
     '<div class="card"><div class="cb flush">' +
     (lista.length
       ? '<table><thead><tr><th>Código</th><th>Cliente</th><th>Adquirente / objeto</th><th>Lote</th><th>Prazo</th><th>Situação</th><th>Arquivos</th></tr></thead><tbody>' +
@@ -933,7 +1078,7 @@ function renderDistratos(){
         }).join("") + '</tbody></table>'
       : '<div class="empty"><div class="mk">LC</div><p>Nenhum distrato encontrado com esses filtros.</p>' +
         '<button class="btn primary" data-novo="1">+ Novo distrato</button></div>') +
-    '</div></div>';
+    '</div></div>');
 
   $("#f-cliente").addEventListener("change", e => { State.filtro.cliente = e.target.value; render(); });
   $("#f-status").addEventListener("change",  e => { State.filtro.status  = e.target.value; render(); });
@@ -944,6 +1089,10 @@ function renderDistratos(){
     State.busca = ""; $("#busca").value = ""; render();
   });
   $("#f-csv").addEventListener("click", () => exportarCSV(lista));
+  $$("#f-vista button").forEach(b => b.addEventListener("click", () => {
+    State.vistaDistratos = b.dataset.vista; render();
+  }));
+  if (State.vistaDistratos === "quadro") ligarQuadro();
   ligarComuns();
 }
 
@@ -1655,6 +1804,7 @@ $("#btn-tema").addEventListener("click", () => {
   const novo = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   document.documentElement.dataset.theme = novo;
   try { localStorage.setItem(LS_TEMA, novo); } catch(e){}
+  if ($("#app").classList.contains("on")) render();   // os graficos tem cor propria por tema
 });
 try { document.documentElement.dataset.theme = localStorage.getItem(LS_TEMA) || "light"; }
 catch(e){ document.documentElement.dataset.theme = "light"; }
