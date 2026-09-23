@@ -7,7 +7,7 @@ momento o que está **para corrigir** e o que já foi **corrigido**.
 São três frentes, cada uma com sua aba: **Distratos**, **Quitações** (termos de quitação) e
 **Extrajudiciais** (diligências como cartório e prefeitura).
 
-**Endereço do sistema:** https://regodiasdaniel.github.io/controle-distratos/
+**Endereço do sistema:** https://leiltoncosta.github.io
 
 Funciona no computador e no celular. Não precisa instalar nada — é só abrir o link e fazer
 login. O mesmo arquivo também roda offline com duplo clique em `index.html`, mas aí os
@@ -107,8 +107,8 @@ Ao criar um usuário novo, marque **"Auto Confirm User"**, senão o login não e
 | Item | Onde |
 |---|---|
 | Banco e arquivos | Supabase, projeto `distratos` (ref `ybohudryuadtcifpuwsj`), região São Paulo |
-| Código | github.com/regodiasdaniel/controle-distratos |
-| Site | GitHub Pages, branch `main`, pasta raiz |
+| Código | github.com/leiltoncosta/leiltoncosta.github.io |
+| Site | GitHub Pages, branch `main`, pasta raiz — https://leiltoncosta.github.io |
 | Tabelas | `clientes`, `distratos`, `quitacoes`, `tarefas` |
 | Arquivos | bucket privado `distratos`, 25 MB por arquivo |
 
