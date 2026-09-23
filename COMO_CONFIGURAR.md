@@ -16,7 +16,7 @@ dados continuam vindo da nuvem, então precisa de internet de qualquer forma.
 
 ### Equipe
 
-1. **+ Novo distrato** → escolhe o cliente (loteamento) e preenche adquirente, quadra/lote,
+1. **+ Novo distrato** → escolhe o loteamento e preenche adquirente, quadra/lote,
    contrato e o **prazo** para correção. Já dá para anexar a minuta na mesma tela.
 2. O distrato nasce na coluna **A corrigir** do painel.
 3. Marcar como **Urgente** joga o item para o topo da fila.
@@ -33,7 +33,7 @@ dados continuam vindo da nuvem, então precisa de internet de qualquer forma.
 ### Depois
 
 - A equipe baixa a versão corrigida pelo botão **Baixar**, direto no painel, e ao devolver
-  ao cliente clica em **Finalizar**.
+  ao loteamento clica em **Finalizar**.
 - Todo movimento — anexos, mudança de status, apontamentos — fica registrado no
   **Histórico** de cada distrato, com data, hora e quem fez.
 
@@ -50,7 +50,7 @@ data e horário, responsável e prioridade.
 4. Abrindo o registro, dá para anexar o **protocolo ou comprovante** e escrever o
    **resultado da diligência**: número de protocolo, certidão obtida, o que ficou pendente.
 
-Cada extrajudicial pode ser ligada a um cliente e a um distrato específico — útil para registrar
+Cada extrajudicial pode ser ligada a um loteamento e a um distrato específico — útil para registrar
 "levar o distrato DST-0003 ao cartório". O que estiver atrasado ou vencendo hoje também
 aparece no Painel, logo abaixo do quadro de colunas.
 

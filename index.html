@@ -507,7 +507,7 @@ const TIPOS_CLIENTE = ["Loteamento", "Construtora", "Imobiliária", "Incorporado
 const STATUS_TAREFA = ["A fazer", "Em andamento", "Concluída", "Cancelada"];
 const LOCAIS = ["Cartório de Notas", "Cartório de Registro de Imóveis", "Prefeitura",
                 "Receita Federal", "Junta Comercial", "Banco", "INSS", "Detran",
-                "Concessionária", "Correios", "Escritório do cliente", "Outro"];
+                "Concessionária", "Correios", "Sede do loteamento", "Outro"];
 
 let sb = null;
 const State = {
@@ -947,9 +947,9 @@ function renderPainel(){
   }).filter(x => x.total > 0).sort((a,b) => (b.corrigir + b.extra) - (a.corrigir + a.extra));
 
   const tabela = porCliente.length
-    ? '<div class="card"><div class="ch"><h3>Resumo por cliente</h3>' +
+    ? '<div class="card"><div class="ch"><h3>Resumo por loteamento</h3>' +
       '<span class="n">' + porCliente.length + '</span></div><div class="cb flush">' +
-      '<table><thead><tr><th>Cliente</th><th>Distratos</th><th>A corrigir</th><th>Corrigidos</th>' +
+      '<table><thead><tr><th>Loteamento</th><th>Distratos</th><th>A corrigir</th><th>Corrigidos</th>' +
       '<th>Extrajudiciais pendentes</th><th>Atrasados</th></tr></thead><tbody>' +
       porCliente.map(x =>
         '<tr data-cliente="' + x.c.id + '"><td class="strong">' + esc(x.c.nome) + '</td>' +
@@ -1043,7 +1043,7 @@ function renderDistratos(){
   $("#content").innerHTML =
     '<div class="phead"><h2>Distratos</h2><div class="sub">' + lista.length + ' de ' + State.distratos.length + '</div></div>' +
     '<div class="filters">' +
-      '<select id="f-cliente">' + opt("","Todos os clientes",f.cliente) + State.clientes.map(c => opt(c.id,c.nome,f.cliente)).join("") + '</select>' +
+      '<select id="f-cliente">' + opt("","Todos os loteamentos",f.cliente) + State.clientes.map(c => opt(c.id,c.nome,f.cliente)).join("") + '</select>' +
       '<select id="f-status">' + opt("","Todas as situações",f.status) + opt("__pendentes","Pendentes",f.status) +
         opt("__atrasados","Somente atrasados",f.status) + STATUS.map(s => opt(s,s,f.status)).join("") + '</select>' +
       '<select id="f-tipo">' + opt("","Todos os tipos",f.tipo) + TIPOS.map(t => opt(t,t,f.tipo)).join("") + '</select>' +
@@ -1061,7 +1061,7 @@ function renderDistratos(){
     (State.vistaDistratos === "quadro" ? "" :
     '<div class="card"><div class="cb flush">' +
     (lista.length
-      ? '<table><thead><tr><th>Código</th><th>Cliente</th><th>Adquirente / objeto</th><th>Lote</th><th>Prazo</th><th>Situação</th><th>Arquivos</th></tr></thead><tbody>' +
+      ? '<table><thead><tr><th>Código</th><th>Loteamento</th><th>Adquirente / objeto</th><th>Lote</th><th>Prazo</th><th>Situação</th><th>Arquivos</th></tr></thead><tbody>' +
         lista.map(d => {
           const orig = ultimoArq(d,"original"), corr = ultimoArq(d,"corrigido");
           return '<tr data-open="' + d.id + '">' +
@@ -1097,7 +1097,7 @@ function renderDistratos(){
 }
 
 function exportarCSV(lista){
-  const cab = ["Código","Cliente","Empreendimento","Tipo","Adquirente","CPF","Contrato","Quadra","Lote",
+  const cab = ["Código","Loteamento","Empreendimento","Tipo","Adquirente","CPF","Contrato","Quadra","Lote",
                "Solicitado em","Prazo","Situação","Prioridade","Responsável","Minuta","Corrigido","Observações"];
   const linhas = lista.map(d => [codigo(d), nomeCliente(d.cliente_id), d.empreendimento, d.tipo_documento,
     d.adquirente, d.cpf_adquirente, d.contrato, d.quadra, d.lote, fmtData(d.data_solicitacao), fmtData(d.prazo),
@@ -1118,8 +1118,8 @@ function renderClientes(){
   const b = State.busca.trim().toLowerCase();
   const lista = State.clientes.filter(c => !b || (c.nome + " " + (c.cnpj||"") + " " + (c.cidade||"")).toLowerCase().includes(b));
   $("#content").innerHTML =
-    '<div class="phead"><h2>Clientes</h2><div class="sub">loteamentos e empresas atendidas</div>' +
-      '<div class="grow"></div><button class="btn primary" data-novo-cliente="1">+ Novo cliente</button></div>' +
+    '<div class="phead"><h2>Loteamentos</h2><div class="sub">empreendimentos atendidos pelo escritório</div>' +
+      '<div class="grow"></div><button class="btn primary" data-novo-cliente="1">+ Novo loteamento</button></div>' +
     (lista.length
       ? '<div class="grid-cli">' + lista.map(c => {
           const l = State.distratos.filter(d => d.cliente_id === c.id);
@@ -1139,8 +1139,8 @@ function renderClientes(){
             '</div></div>';
         }).join("") + '</div>'
       : '<div class="card"><div class="empty"><div class="mk">LC</div>' +
-        '<p>Nenhum cliente cadastrado. Comece pelos loteamentos que enviam distratos.</p>' +
-        '<button class="btn primary" data-novo-cliente="1">+ Novo cliente</button></div></div>');
+        '<p>Nenhum loteamento cadastrado. Comece pelos que enviam distratos para correção.</p>' +
+        '<button class="btn primary" data-novo-cliente="1">+ Novo loteamento</button></div></div>');
   ligarComuns();
 }
 
@@ -1152,10 +1152,10 @@ function renderCliente(){
 
   $("#content").innerHTML =
     '<div class="phead">' +
-      '<button class="btn sm" data-go-clientes="1">← Clientes</button>' +
+      '<button class="btn sm" data-go-clientes="1">← Loteamentos</button>' +
       '<h2>' + esc(c.nome) + '</h2><div class="sub">' + esc(c.tipo || "Loteamento") + '</div>' +
       '<div class="grow"></div>' +
-      '<button class="btn sm" data-edit-cliente="' + c.id + '">Editar cliente</button>' +
+      '<button class="btn sm" data-edit-cliente="' + c.id + '">Editar loteamento</button>' +
       '<button class="btn primary" data-novo="' + c.id + '">+ Novo distrato</button></div>' +
 
     '<div class="card"><div class="cb"><div class="kv" style="margin:0">' +
@@ -1175,7 +1175,7 @@ function renderCliente(){
       '<div class="s alerta"><div class="k">Atrasados</div><div class="v">' + l.filter(estaAtrasado).length + '</div></div>' +
     '</div>' +
 
-    '<div class="card"><div class="ch"><h3>Distratos deste cliente</h3><span class="n">' + l.length + '</span></div>' +
+    '<div class="card"><div class="ch"><h3>Distratos deste loteamento</h3><span class="n">' + l.length + '</span></div>' +
     '<div class="cb flush">' +
       (l.length
         ? '<table><thead><tr><th>Código</th><th>Adquirente / objeto</th><th>Lote</th><th>Contrato</th><th>Prazo</th><th>Situação</th><th>Arquivos</th></tr></thead><tbody>' +
@@ -1191,7 +1191,7 @@ function renderCliente(){
                        (corr ? '<span class="chip ok">corrigido</span>' : "") +
                        (!orig && !corr ? '<span class="dim">—</span>' : "") + '</td></tr>';
           }).join("") + '</tbody></table>'
-        : '<div class="empty"><div class="mk">LC</div><p>Nenhum distrato lançado para este cliente.</p>' +
+        : '<div class="empty"><div class="mk">LC</div><p>Nenhum distrato lançado para este loteamento.</p>' +
           '<button class="btn primary" data-novo="' + c.id + '">+ Novo distrato</button></div>') +
     '</div></div>';
   ligarComuns();
@@ -1320,7 +1320,7 @@ function renderTarefas(){
       '<select id="t-status">' + opt("","Todas as situações",f.status) + opt("__pendentes","Pendentes",f.status) +
         opt("__atrasadas","Somente atrasadas",f.status) + STATUS_TAREFA.map(x => opt(x,x,f.status)).join("") + '</select>' +
       '<select id="t-local">' + opt("","Todos os lugares",f.local) + LOCAIS.map(x => opt(x,x,f.local)).join("") + '</select>' +
-      '<select id="t-cliente">' + opt("","Todos os clientes",f.cliente) +
+      '<select id="t-cliente">' + opt("","Todos os loteamentos",f.cliente) +
         State.clientes.map(c => opt(c.id,c.nome,f.cliente)).join("") + '</select>' +
       '<div class="grow"></div><button class="btn sm" id="t-limpar">Limpar filtros</button>' +
     '</div>' +
@@ -1383,7 +1383,7 @@ function formTarefa(id){
         '<div class="fg"><label>Prioridade</label><select id="tf-pri">' +
           opt("Normal","Normal", t ? t.prioridade : "Normal") +
           opt("Urgente","Urgente", t ? t.prioridade : "Normal") + '</select></div>' +
-        '<div class="fg"><label>Cliente (opcional)</label><select id="tf-cli">' +
+        '<div class="fg"><label>Loteamento (opcional)</label><select id="tf-cli">' +
           opt("","— nenhum —", selCli) + State.clientes.map(c => opt(c.id,c.nome,selCli)).join("") + '</select></div>' +
         '<div class="fg"><label>Distrato ligado (opcional)</label><select id="tf-dist">' +
           opt("","— nenhum —", selDist) + State.distratos.map(d =>
@@ -1462,7 +1462,7 @@ function abrirTarefa(id){
         '<div><div class="k">Endereço</div><div class="v' + (t.endereco ? '' : ' nao') + '">' + esc(t.endereco || "—") + '</div></div>' +
         '<div><div class="k">Quando</div><div class="v">' + chipQuando(t) + '</div></div>' +
         '<div><div class="k">Responsável</div><div class="v' + (t.responsavel ? '' : ' nao') + '">' + esc(t.responsavel || "—") + '</div></div>' +
-        '<div><div class="k">Cliente</div><div class="v' + (c ? '' : ' nao') + '">' + esc(c ? c.nome : "—") + '</div></div>' +
+        '<div><div class="k">Loteamento</div><div class="v' + (c ? '' : ' nao') + '">' + esc(c ? c.nome : "—") + '</div></div>' +
         '<div><div class="k">Distrato ligado</div><div class="v' + (dv ? '' : ' nao') + '">' +
           (dv ? codigo(dv) + " — " + esc(dv.adquirente || dv.tipo_documento) : "—") + '</div></div>' +
         (t.concluida_em ? '<div><div class="k">Concluída em</div><div class="v">' + fmtDataHora(t.concluida_em) + '</div></div>' : "") +
@@ -1554,9 +1554,9 @@ function formCliente(id){
   const c = id ? State.clientes.find(x => x.id === id) : null;
   const opt = (v,sel) => '<option' + (sel === v ? " selected" : "") + ">" + esc(v) + "</option>";
   const m = abrirModal(
-    '<div class="mh"><h3>' + (c ? "Editar cliente" : "Novo cliente") + '</h3><button class="x" data-fechar>✕</button></div>' +
+    '<div class="mh"><h3>' + (c ? "Editar loteamento" : "Novo loteamento") + '</h3><button class="x" data-fechar>✕</button></div>' +
     '<div class="mb"><div class="g2">' +
-      '<div class="fg full"><label>Nome do cliente / loteamento *</label><input id="c-nome" value="' + esc(c && c.nome) + '"></div>' +
+      '<div class="fg full"><label>Nome do loteamento *</label><input id="c-nome" value="' + esc(c && c.nome) + '"></div>' +
       '<div class="fg"><label>Tipo</label><select id="c-tipo">' + TIPOS_CLIENTE.map(t => opt(t, c && c.tipo)).join("") + '</select></div>' +
       '<div class="fg"><label>CNPJ / CPF</label><input id="c-cnpj" value="' + esc(c && c.cnpj) + '"></div>' +
       '<div class="fg"><label>Pessoa de contato</label><input id="c-resp" value="' + esc(c && c.responsavel) + '"></div>' +
@@ -1574,7 +1574,7 @@ function formCliente(id){
 
   $("#c-salvar", m).addEventListener("click", async () => {
     const nome = $("#c-nome", m).value.trim();
-    if (!nome) { toast("Informe o nome do cliente.", "err"); return; }
+    if (!nome) { toast("Informe o nome do loteamento.", "err"); return; }
     const dados = { nome:nome, tipo:$("#c-tipo",m).value,
       cnpj:$("#c-cnpj",m).value.trim()||null, responsavel:$("#c-resp",m).value.trim()||null,
       telefone:$("#c-tel",m).value.trim()||null, email:$("#c-email",m).value.trim()||null,
@@ -1583,7 +1583,7 @@ function formCliente(id){
     try {
       if (c) { const { error } = await sb.from("clientes").update(dados).eq("id", c.id); if (error) throw error; }
       else { dados.criado_por = quem(); const { error } = await sb.from("clientes").insert(dados); if (error) throw error; }
-      fecharModal(); await recarregar(true); toast(c ? "Cliente atualizado." : "Cliente cadastrado.");
+      fecharModal(); await recarregar(true); toast(c ? "Loteamento atualizado." : "Loteamento cadastrado.");
     } catch(e){ toast("Erro ao salvar: " + e.message, "err"); }
   });
   if (c) $("#c-excluir", m).addEventListener("click", async () => {
@@ -1591,14 +1591,14 @@ function formCliente(id){
     if (!confirm("Excluir \"" + c.nome + "\"?" + (n ? "\n\nIsso apaga também os " + n + " distrato(s) vinculados." : ""))) return;
     try {
       const { error } = await sb.from("clientes").delete().eq("id", c.id); if (error) throw error;
-      fecharModal(); State.view = "clientes"; await recarregar(true); toast("Cliente excluído.");
+      fecharModal(); State.view = "clientes"; await recarregar(true); toast("Loteamento excluído.");
     } catch(e){ toast("Erro: " + e.message, "err"); }
   });
 }
 
 /* --- distrato: cadastro/edição --- */
 function formDistrato(id, clientePre){
-  if (!State.clientes.length) { toast("Cadastre um cliente antes.", "err"); formCliente(null); return; }
+  if (!State.clientes.length) { toast("Cadastre um loteamento antes.", "err"); formCliente(null); return; }
   const d = id ? State.distratos.find(x => x.id === id) : null;
   const sel = d ? d.cliente_id : (clientePre || (State.view === "cliente" ? State.clienteAberto : "") || State.clientes[0].id);
   const opt = (v,t,s) => '<option value="' + esc(v) + '"' + (s === v ? " selected" : "") + ">" + esc(t) + "</option>";
@@ -1606,7 +1606,7 @@ function formDistrato(id, clientePre){
   const m = abrirModal(
     '<div class="mh"><h3>' + (d ? "Editar " + codigo(d) : "Novo distrato") + '</h3><button class="x" data-fechar>✕</button></div>' +
     '<div class="mb">' +
-      '<div class="fg"><label>Cliente / loteamento *</label><select id="d-cliente">' +
+      '<div class="fg"><label>Loteamento *</label><select id="d-cliente">' +
         State.clientes.map(c => opt(c.id, c.nome, sel)).join("") + '</select></div>' +
       (d ? "" :
         '<div class="sec destaque" style="margin:16px 0 22px"><div class="st"><span>Arquivo do distrato para o Dr. corrigir</span></div>' +
@@ -1746,7 +1746,7 @@ function abrirDistrato(id){
     '<div class="mb">' +
       '<div class="kv">' +
         '<div><div class="k">Código</div><div class="v mono" style="font-size:12.5px">' + codigo(d) + '</div></div>' +
-        '<div><div class="k">Cliente</div><div class="v">' + esc(c ? c.nome : "—") + '</div></div>' +
+        '<div><div class="k">Loteamento</div><div class="v">' + esc(c ? c.nome : "—") + '</div></div>' +
         '<div><div class="k">Tipo</div><div class="v">' + esc(d.tipo_documento) + '</div></div>' +
         '<div><div class="k">Empreendimento</div><div class="v' + (d.empreendimento ? '' : ' nao') + '">' + esc(d.empreendimento || "—") + '</div></div>' +
         '<div><div class="k">Quadra / lote</div><div class="v' + (identificaLote(d) ? '' : ' nao') + '">' + esc(identificaLote(d) || "—") + '</div></div>' +
