@@ -769,7 +769,7 @@ function renderTabs(){
   $("#tabs").innerHTML =
     aba("painel", "Painel", atrasados, State.view === "painel", true) +
     aba("distratos", "Distratos", State.distratos.length, State.view === "distratos") +
-    aba("tarefas", "Tarefas", State.tarefas.filter(tarefaPendente).length,
+    aba("tarefas", "Extrajudiciais", State.tarefas.filter(tarefaPendente).length,
         State.view === "tarefas", State.tarefas.some(tarefaAtrasada)) +
     aba("clientes", "Clientes", State.clientes.length, State.view === "clientes" || State.view === "cliente");
   $$("#tabs .tab").forEach(b => b.addEventListener("click", () => {
@@ -1051,7 +1051,7 @@ function renderCliente(){
 /* ============================================================================
    TAREFAS EXTRAJUDICIAIS — diligências (cartório, prefeitura, protocolos)
    ============================================================================ */
-function codigoTarefa(t){ return "TRF-" + String(t.numero).padStart(4,"0"); }
+function codigoTarefa(t){ return "EXT-" + String(t.numero).padStart(4,"0"); }
 function tarefaPendente(t){ return t.status === "A fazer" || t.status === "Em andamento"; }
 function tarefaAtrasada(t){ return tarefaPendente(t) && t.data && diasAte(t.data) < 0; }
 function classeStatusTarefa(s){
@@ -1139,16 +1139,16 @@ function blocoTarefasPainel(){
   const urg = ordenaTarefas(State.tarefas.filter(t => tarefaPendente(t) && t.data && diasAte(t.data) <= 0));
   if (!urg.length) return "";
   return '<div class="card" style="margin-top:20px"><div class="ch">' +
-    '<h3>Tarefas de hoje e atrasadas</h3><span class="n">' + urg.length + '</span>' +
+    '<h3>Extrajudiciais de hoje e atrasadas</h3><span class="n">' + urg.length + '</span>' +
     '<div class="grow"></div><button class="btn sm" data-go-tarefas="1">Ver todas</button></div>' +
     '<div class="cb">' + urg.slice(0,6).map(linhaTarefa).join("") + '</div></div>';
 }
 
 function renderTarefas(){
   if (State.semTarefas) {
-    $("#content").innerHTML = '<div class="phead"><h2>Tarefas</h2></div>' +
+    $("#content").innerHTML = '<div class="phead"><h2>Extrajudiciais</h2></div>' +
       '<div class="card"><div class="empty"><div class="mk">LC</div>' +
-      '<p>A tabela de tarefas ainda não existe neste banco. Rode o <b>schema_supabase.sql</b> ' +
+      '<p>O módulo de extrajudiciais ainda não existe neste banco. Rode o <b>schema_supabase.sql</b> ' +
       'no SQL Editor do Supabase para criá-la.</p></div></div>';
     return;
   }
@@ -1164,9 +1164,9 @@ function renderTarefas(){
       ordenaTarefas(porGrupo[g[0]]).map(linhaTarefa).join("") + '</div>').join("");
 
   $("#content").innerHTML =
-    '<div class="phead"><h2>Tarefas</h2>' +
+    '<div class="phead"><h2>Extrajudiciais</h2>' +
       '<div class="sub">diligências: cartório, prefeitura, protocolos</div>' +
-      '<div class="grow"></div><button class="btn primary" data-nova-tarefa="1">+ Nova tarefa</button></div>' +
+      '<div class="grow"></div><button class="btn primary" data-nova-tarefa="1">+ Nova extrajudicial</button></div>' +
     '<div class="filters">' +
       '<select id="t-status">' + opt("","Todas as situações",f.status) + opt("__pendentes","Pendentes",f.status) +
         opt("__atrasadas","Somente atrasadas",f.status) + STATUS_TAREFA.map(x => opt(x,x,f.status)).join("") + '</select>' +
@@ -1176,9 +1176,9 @@ function renderTarefas(){
       '<div class="grow"></div><button class="btn sm" id="t-limpar">Limpar filtros</button>' +
     '</div>' +
     (corpo || '<div class="card"><div class="empty"><div class="mk">LC</div>' +
-      '<p>Nenhuma tarefa com esses filtros. Use esta aba para registrar ida ao cartório, ' +
+      '<p>Nenhuma extrajudicial com esses filtros. Use esta aba para registrar ida ao cartório, ' +
       'protocolo na prefeitura, retirada de documento — qualquer diligência que precise de controle.</p>' +
-      '<button class="btn primary" data-nova-tarefa="1">+ Nova tarefa</button></div></div>');
+      '<button class="btn primary" data-nova-tarefa="1">+ Nova extrajudicial</button></div></div>');
 
   $("#t-status").addEventListener("change", e => { State.filtroT.status = e.target.value; render(); });
   $("#t-local").addEventListener("change", e => { State.filtroT.local = e.target.value; render(); });
@@ -1199,7 +1199,7 @@ async function mudarStatusTarefa(id, novo){
   else { patch.concluida_em = null; patch.concluida_por = null; }
   try {
     await atualizarRegistro("tarefas", id, patch);
-    toast(novo === "Concluída" ? "Tarefa concluída." : "Situação: " + novo);
+    toast(novo === "Concluída" ? "Extrajudicial concluída." : "Situação: " + novo);
     render();
     if ($("#overlay").classList.contains("on")) abrirTarefa(id);
   } catch(e){ toast("Erro: " + e.message, "err"); }
@@ -1216,7 +1216,7 @@ function formTarefa(id){
   const selCli  = t ? (t.cliente_id || "") : "";
   const selDist = t ? (t.distrato_id || "") : "";
   const m = abrirModal(
-    '<div class="mh"><h3>' + (t ? "Editar " + codigoTarefa(t) : "Nova tarefa") + '</h3>' +
+    '<div class="mh"><h3>' + (t ? "Editar " + codigoTarefa(t) : "Nova extrajudicial") + '</h3>' +
       '<button class="x" data-fechar>✕</button></div>' +
     '<div class="mb">' +
       '<div class="fg"><label>O que precisa ser feito *</label>' +
@@ -1267,12 +1267,12 @@ function formTarefa(id){
           else { dados.concluida_em = null; dados.concluida_por = null; }
         }
         const { error } = await sb.from("tarefas").update(dados).eq("id", t.id); if (error) throw error;
-        fecharModal(); await recarregar(true); toast("Tarefa atualizada.");
+        fecharModal(); await recarregar(true); toast("Extrajudicial atualizada.");
       } else {
         dados.status = "A fazer"; dados.criado_por = quem();
-        dados.historico = addHistorico({}, "Tarefa cadastrada.");
+        dados.historico = addHistorico({}, "Extrajudicial cadastrada.");
         const { error } = await sb.from("tarefas").insert(dados); if (error) throw error;
-        fecharModal(); await recarregar(true); toast("Tarefa cadastrada.");
+        fecharModal(); await recarregar(true); toast("Extrajudicial cadastrada.");
       }
     } catch(e){ toast("Erro ao salvar: " + e.message, "err"); }
   });
@@ -1283,7 +1283,7 @@ function formTarefa(id){
       const paths = (t.arquivos || []).map(a => a.path);
       if (paths.length) await sb.storage.from(BUCKET).remove(paths);
       const { error } = await sb.from("tarefas").delete().eq("id", t.id); if (error) throw error;
-      fecharModal(); await recarregar(true); toast("Tarefa excluída.");
+      fecharModal(); await recarregar(true); toast("Extrajudicial excluída.");
     } catch(e){ toast("Erro: " + e.message, "err"); }
   });
 }

@@ -37,20 +37,20 @@ dados continuam vindo da nuvem, então precisa de internet de qualquer forma.
 - Todo movimento — anexos, mudança de status, apontamentos — fica registrado no
   **Histórico** de cada distrato, com data, hora e quem fez.
 
-### Tarefas extrajudiciais
+### Extrajudiciais
 
-A aba **Tarefas** controla as diligências: ir ao cartório, protocolar na prefeitura,
-retirar certidão, reconhecer firma. Cada tarefa registra onde ir, qual órgão, endereço,
+A aba **Extrajudiciais** controla as diligências: ir ao cartório, protocolar na prefeitura,
+retirar certidão, reconhecer firma. Cada registro guarda onde ir, qual órgão, endereço,
 data e horário, responsável e prioridade.
 
-1. **+ Nova tarefa** → descreva o que precisa ser feito e marque a data.
+1. **+ Nova extrajudicial** → descreva o que precisa ser feito e marque a data.
 2. A lista se organiza sozinha em **Atrasadas**, **Hoje**, **Amanhã**, **Próximos 7 dias**,
    **Mais adiante**, **Sem data marcada** e, no fim, as **Concluídas**.
-3. Clique no **círculo** à esquerda para dar a tarefa como feita — e de novo para reabrir.
-4. Abrindo a tarefa, dá para anexar o **protocolo ou comprovante** e escrever o
+3. Clique no **círculo** à esquerda para dar como feita — e de novo para reabrir.
+4. Abrindo o registro, dá para anexar o **protocolo ou comprovante** e escrever o
    **resultado da diligência**: número de protocolo, certidão obtida, o que ficou pendente.
 
-A tarefa pode ser ligada a um cliente e a um distrato específico — útil para registrar
+Cada extrajudicial pode ser ligada a um cliente e a um distrato específico — útil para registrar
 "levar o distrato DST-0003 ao cartório". O que estiver atrasado ou vencendo hoje também
 aparece no Painel, logo abaixo do quadro de colunas.
 
