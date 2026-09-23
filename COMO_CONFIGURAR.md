@@ -37,6 +37,23 @@ dados continuam vindo da nuvem, então precisa de internet de qualquer forma.
 - Todo movimento — anexos, mudança de status, apontamentos — fica registrado no
   **Histórico** de cada distrato, com data, hora e quem fez.
 
+### Tarefas extrajudiciais
+
+A aba **Tarefas** controla as diligências: ir ao cartório, protocolar na prefeitura,
+retirar certidão, reconhecer firma. Cada tarefa registra onde ir, qual órgão, endereço,
+data e horário, responsável e prioridade.
+
+1. **+ Nova tarefa** → descreva o que precisa ser feito e marque a data.
+2. A lista se organiza sozinha em **Atrasadas**, **Hoje**, **Amanhã**, **Próximos 7 dias**,
+   **Mais adiante**, **Sem data marcada** e, no fim, as **Concluídas**.
+3. Clique no **círculo** à esquerda para dar a tarefa como feita — e de novo para reabrir.
+4. Abrindo a tarefa, dá para anexar o **protocolo ou comprovante** e escrever o
+   **resultado da diligência**: número de protocolo, certidão obtida, o que ficou pendente.
+
+A tarefa pode ser ligada a um cliente e a um distrato específico — útil para registrar
+"levar o distrato DST-0003 ao cartório". O que estiver atrasado ou vencendo hoje também
+aparece no Painel, logo abaixo do quadro de colunas.
+
 ## Detalhes úteis
 
 - **Várias versões do mesmo arquivo**: pode anexar quantas quiser. A mais recente fica
@@ -76,7 +93,7 @@ Ao criar um usuário novo, marque **"Auto Confirm User"**, senão o login não e
 | Banco e arquivos | Supabase, projeto `distratos` (ref `ybohudryuadtcifpuwsj`), região São Paulo |
 | Código | github.com/regodiasdaniel/controle-distratos |
 | Site | GitHub Pages, branch `main`, pasta raiz |
-| Tabelas | `clientes`, `distratos` |
+| Tabelas | `clientes`, `distratos`, `tarefas` |
 | Arquivos | bucket privado `distratos`, 25 MB por arquivo |
 
 A senha do banco Postgres **não é usada pelo sistema**. Se precisar dela algum dia e não

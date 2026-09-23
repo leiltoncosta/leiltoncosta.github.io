@@ -344,6 +344,33 @@ td .dim{color:var(--text-3);font-size:11.5px}
 @keyframes rot{to{transform:rotate(360deg)}}
 #loading .t{font-size:12.5px;color:var(--text-3)}
 
+/* ============================================================
+   TAREFAS EXTRAJUDICIAIS
+   ============================================================ */
+.tgrupo{margin-bottom:20px}
+.tgrupo > .gh{display:flex;align-items:center;gap:8px;font-size:9.5px;font-weight:700;
+  color:var(--text-3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px}
+.tgrupo > .gh .n{background:var(--panel-3);padding:1px 8px;border-radius:9px;font-size:10.5px}
+.tgrupo.urgente > .gh{color:var(--alert)}
+.tgrupo.urgente > .gh .n{background:var(--alert);color:var(--bone)}
+.tarefa{display:flex;align-items:flex-start;gap:12px;background:var(--panel);border:1px solid var(--border);
+  border-left:3px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px;
+  cursor:pointer;transition:var(--t)}
+.tarefa:hover{border-color:var(--accent);border-left-color:var(--accent);box-shadow:var(--shadow-sm)}
+.tarefa.atr,.tarefa.urg{border-left-color:var(--alert)}
+.tarefa.feita{opacity:.55}
+.tarefa.feita .tt{text-decoration:line-through}
+.tarefa .ck{width:20px;height:20px;border-radius:50%;border:1.8px solid var(--border);flex:none;
+  margin-top:1px;padding:0;background:transparent;color:transparent;
+  display:flex;align-items:center;justify-content:center;transition:var(--t)}
+.tarefa .ck:hover{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.tarefa .ck.on{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
+.tarefa .ck svg{width:11px;height:11px}
+.tarefa .corpo{flex:1;min-width:0}
+.tarefa .tt{font-size:13.4px;font-weight:600;line-height:1.35}
+.tarefa .meta{font-size:11.5px;color:var(--text-3);margin-top:3px}
+.tarefa .dir{display:flex;align-items:center;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+
 @media(max-width:860px){
   .topbar{padding:0 14px;gap:6px}
   .topbar .brand .nm,.topbar .brand .sb{display:none}
@@ -448,11 +475,16 @@ const MAX_MB  = 25;
 const STATUS = ["A corrigir", "Em correção", "Corrigido", "Finalizado"];
 const TIPOS  = ["Distrato", "Notificação extrajudicial", "Rescisão", "Aditivo", "Outro"];
 const TIPOS_CLIENTE = ["Loteamento", "Construtora", "Imobiliária", "Incorporadora", "Outro"];
+const STATUS_TAREFA = ["A fazer", "Em andamento", "Concluída", "Cancelada"];
+const LOCAIS = ["Cartório de Notas", "Cartório de Registro de Imóveis", "Prefeitura",
+                "Receita Federal", "Junta Comercial", "Banco", "INSS", "Detran",
+                "Concessionária", "Correios", "Escritório do cliente", "Outro"];
 
 let sb = null;
 const State = {
-  user:null, clientes:[], distratos:[], view:"painel", clienteAberto:null,
-  busca:"", filtro:{ cliente:"", status:"", tipo:"", prazo:"" }
+  user:null, clientes:[], distratos:[], tarefas:[], view:"painel", clienteAberto:null,
+  busca:"", filtro:{ cliente:"", status:"", tipo:"", prazo:"" },
+  filtroT:{ cliente:"", status:"", local:"" }
 };
 
 /* ============================================================================
@@ -603,13 +635,19 @@ $("#btn-sair").addEventListener("click", async () => { await sb.auth.signOut(); 
    DADOS
    ============================================================================ */
 async function carregarTudo(){
-  const [rc, rd] = await Promise.all([
+  const [rc, rd, rt] = await Promise.all([
     sb.from("clientes").select("*").order("nome", { ascending:true }),
-    sb.from("distratos").select("*").order("numero", { ascending:false })
+    sb.from("distratos").select("*").order("numero", { ascending:false }),
+    sb.from("tarefas").select("*").order("numero", { ascending:false })
   ]);
   if (rc.error) throw rc.error;
   if (rd.error) throw rd.error;
   State.clientes = rc.data || []; State.distratos = rd.data || [];
+  // A tabela de tarefas pode nao existir em bancos antigos: nesse caso segue sem elas.
+  if (rt.error) {
+    if (!/does not exist|schema cache|relation/i.test(rt.error.message)) throw rt.error;
+    State.tarefas = []; State.semTarefas = true;
+  } else { State.tarefas = rt.data || []; State.semTarefas = false; }
 }
 async function recarregar(silencioso){
   try { await carregarTudo(); render(); if (!silencioso) toast("Dados atualizados."); }
@@ -621,18 +659,20 @@ function addHistorico(d, texto){
   h.push({ data:hojeISO(), hora:agora.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}), quem:quem(), texto:texto });
   return h;
 }
-async function atualizarDistrato(id, patch){
-  const { data, error } = await sb.from("distratos").update(patch).eq("id", id).select().single();
+async function atualizarRegistro(tabela, id, patch){
+  const { data, error } = await sb.from(tabela).update(patch).eq("id", id).select().single();
   if (error) throw error;
-  const i = State.distratos.findIndex(x => x.id === id);
-  if (i >= 0) State.distratos[i] = data; else State.distratos.unshift(data);
+  const arr = State[tabela];
+  const i = arr.findIndex(x => x.id === id);
+  if (i >= 0) arr[i] = data; else arr.unshift(data);
   return data;
 }
+const atualizarDistrato = (id, patch) => atualizarRegistro("distratos", id, patch);
 
 /* ============================================================================
    ARQUIVOS
    ============================================================================ */
-async function enviarArquivo(distrato, file, tipo){
+async function enviarArquivo(tabela, distrato, file, tipo){
   if (file.size > MAX_MB * 1048576) { toast("Arquivo maior que " + MAX_MB + " MB.", "err"); return; }
   carregando(true, "Enviando " + file.name + "…");
   try {
@@ -643,7 +683,8 @@ async function enviarArquivo(distrato, file, tipo){
     arquivos.push({ id:path, tipo:tipo, path:path, nome:file.name, tamanho:file.size,
                     enviado_em:new Date().toISOString(), enviado_por:quem() });
     const patch = { arquivos:arquivos,
-      historico: addHistorico(distrato, (tipo === "original" ? "Minuta anexada: " : "Versão corrigida anexada: ") + file.name) };
+      historico: addHistorico(distrato, (tipo === "original" ? "Minuta anexada: "
+        : tipo === "corrigido" ? "Versão corrigida anexada: " : "Arquivo anexado: ") + file.name) };
     if (tipo === "corrigido" && distrato.status !== "Finalizado") {
       patch.status = "Corrigido";
       patch.corrigido_em = new Date().toISOString();
@@ -651,9 +692,11 @@ async function enviarArquivo(distrato, file, tipo){
       if (distrato.status !== "Corrigido")
         patch.historico = addHistorico({ historico:patch.historico }, 'Situação alterada para "Corrigido".');
     }
-    const novo = await atualizarDistrato(distrato.id, patch);
+    const novo = await atualizarRegistro(tabela, distrato.id, patch);
     carregando(false); toast("Arquivo anexado."); render();
-    if ($("#overlay").classList.contains("on")) abrirDistrato(novo.id);
+    if ($("#overlay").classList.contains("on")) {
+      if (tabela === "tarefas") abrirTarefa(novo.id); else abrirDistrato(novo.id);
+    }
   } catch(e){ carregando(false); toast("Falha no envio: " + e.message, "err"); }
 }
 async function baixarArquivo(arq){
@@ -663,14 +706,15 @@ async function baixarArquivo(arq){
     window.open(data.signedUrl, "_blank");
   } catch(e){ toast("Não foi possível baixar: " + e.message, "err"); }
 }
-async function apagarArquivo(distrato, arq){
+async function apagarArquivo(tabela, distrato, arq){
   if (!confirm("Remover o arquivo \"" + arq.nome + "\"?")) return;
   try {
     await sb.storage.from(BUCKET).remove([arq.path]);
     const arquivos = (distrato.arquivos || []).filter(a => a.path !== arq.path);
-    const novo = await atualizarDistrato(distrato.id, { arquivos:arquivos,
+    const novo = await atualizarRegistro(tabela, distrato.id, { arquivos:arquivos,
       historico: addHistorico(distrato, "Arquivo removido: " + arq.nome) });
-    toast("Arquivo removido."); render(); abrirDistrato(novo.id);
+    toast("Arquivo removido."); render();
+    if (tabela === "tarefas") abrirTarefa(novo.id); else abrirDistrato(novo.id);
   } catch(e){ toast("Erro: " + e.message, "err"); }
 }
 
@@ -725,6 +769,8 @@ function renderTabs(){
   $("#tabs").innerHTML =
     aba("painel", "Painel", atrasados, State.view === "painel", true) +
     aba("distratos", "Distratos", State.distratos.length, State.view === "distratos") +
+    aba("tarefas", "Tarefas", State.tarefas.filter(tarefaPendente).length,
+        State.view === "tarefas", State.tarefas.some(tarefaAtrasada)) +
     aba("clientes", "Clientes", State.clientes.length, State.view === "clientes" || State.view === "cliente");
   $$("#tabs .tab").forEach(b => b.addEventListener("click", () => {
     State.filtro = { cliente:"", status:"", tipo:"", prazo:"" };
@@ -787,6 +833,7 @@ function renderPainel(){
       '<div class="sub">arraste o cartão entre as colunas para mudar a situação</div></div>' +
     strip +
     '<div class="board">' + colunas + '</div>' +
+    blocoTarefasPainel() +
     (porCliente.length
       ? '<div class="card" style="margin-top:20px"><div class="ch"><h3>Resumo por cliente</h3>' +
         '<span class="n">' + porCliente.length + '</span></div><div class="cb flush">' +
@@ -1002,6 +1049,313 @@ function renderCliente(){
 }
 
 /* ============================================================================
+   TAREFAS EXTRAJUDICIAIS — diligências (cartório, prefeitura, protocolos)
+   ============================================================================ */
+function codigoTarefa(t){ return "TRF-" + String(t.numero).padStart(4,"0"); }
+function tarefaPendente(t){ return t.status === "A fazer" || t.status === "Em andamento"; }
+function tarefaAtrasada(t){ return tarefaPendente(t) && t.data && diasAte(t.data) < 0; }
+function classeStatusTarefa(s){
+  return { "A fazer":"t-corrigir", "Em andamento":"t-emcorrecao",
+           "Concluída":"t-corrigido", "Cancelada":"t-finalizado" }[s] || "t-finalizado";
+}
+function tagStatusTarefa(s){ return '<span class="tag ' + classeStatusTarefa(s) + '">' + esc(s) + '</span>'; }
+function chipQuando(t){
+  const h = t.hora ? " · " + esc(t.hora) : "";
+  if (!t.data) return '<span class="chip">sem data</span>';
+  if (!tarefaPendente(t)) return '<span class="chip">' + fmtData(t.data) + h + '</span>';
+  const n = diasAte(t.data);
+  if (n < 0)   return '<span class="chip al">' + Math.abs(n) + 'd em atraso</span>';
+  if (n === 0) return '<span class="chip al">hoje' + h + '</span>';
+  if (n === 1) return '<span class="chip">amanhã' + h + '</span>';
+  return '<span class="chip">' + fmtData(t.data) + h + '</span>';
+}
+const GRUPOS_TAREFA = [
+  ["atrasadas","Atrasadas",true], ["hoje","Hoje",true], ["amanha","Amanhã",false],
+  ["semana","Próximos 7 dias",false], ["depois","Mais adiante",false],
+  ["semdata","Sem data marcada",false], ["feitas","Concluídas",false], ["canceladas","Canceladas",false]
+];
+function grupoTarefa(t){
+  if (t.status === "Concluída") return "feitas";
+  if (t.status === "Cancelada") return "canceladas";
+  const n = diasAte(t.data);
+  if (n === null) return "semdata";
+  if (n < 0) return "atrasadas";
+  if (n === 0) return "hoje";
+  if (n === 1) return "amanha";
+  if (n <= 7) return "semana";
+  return "depois";
+}
+function ordenaTarefas(l){
+  return l.slice().sort((a,b) => {
+    if ((a.prioridade === "Urgente") !== (b.prioridade === "Urgente")) return a.prioridade === "Urgente" ? -1 : 1;
+    if (!a.data && b.data) return 1;
+    if (a.data && !b.data) return -1;
+    if (a.data !== b.data) return (a.data || "") < (b.data || "") ? -1 : 1;
+    return (a.hora || "99") < (b.hora || "99") ? -1 : 1;
+  });
+}
+function tarefasFiltradas(){
+  const b = State.busca.trim().toLowerCase();
+  const f = State.filtroT;
+  return State.tarefas.filter(t => {
+    if (f.cliente && t.cliente_id !== f.cliente) return false;
+    if (f.local && t.local !== f.local) return false;
+    if (f.status === "__pendentes") { if (!tarefaPendente(t)) return false; }
+    else if (f.status === "__atrasadas") { if (!tarefaAtrasada(t)) return false; }
+    else if (f.status && t.status !== f.status) return false;
+    if (b) {
+      const alvo = [t.titulo,t.local,t.orgao,t.endereco,t.responsavel,t.observacoes,t.resultado,
+                    codigoTarefa(t), t.cliente_id ? nomeCliente(t.cliente_id) : ""]
+                    .filter(Boolean).join(" ").toLowerCase();
+      if (!alvo.includes(b)) return false;
+    }
+    return true;
+  });
+}
+const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" ' +
+  'stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+
+function linhaTarefa(t){
+  const feita = t.status === "Concluída";
+  const cls = feita ? "feita" : (t.prioridade === "Urgente" || tarefaAtrasada(t)) ? "urg" : "";
+  const meta = [esc(t.local) + (t.orgao ? " · " + esc(t.orgao) : ""),
+                t.cliente_id ? esc(nomeCliente(t.cliente_id)) : "",
+                t.responsavel ? esc(t.responsavel) : ""].filter(Boolean).join(" · ");
+  const nArq = (t.arquivos || []).length;
+  return '<div class="tarefa ' + cls + '" data-tarefa="' + t.id + '">' +
+    '<button class="ck' + (feita ? " on" : "") + '" data-check="' + t.id + '" title="' +
+      (feita ? "Reabrir" : "Marcar como concluída") + '">' + CHECK_SVG + '</button>' +
+    '<div class="corpo"><div class="tt">' + esc(t.titulo) + '</div>' +
+      '<div class="meta">' + meta + '</div></div>' +
+    '<div class="dir">' +
+      (t.prioridade === "Urgente" && !feita ? '<span class="tag t-urg">urgente</span>' : "") +
+      (nArq ? '<span class="chip doc">' + nArq + ' anexo' + (nArq > 1 ? "s" : "") + '</span>' : "") +
+      chipQuando(t) +
+    '</div></div>';
+}
+
+function blocoTarefasPainel(){
+  if (State.semTarefas) return "";
+  const urg = ordenaTarefas(State.tarefas.filter(t => tarefaPendente(t) && t.data && diasAte(t.data) <= 0));
+  if (!urg.length) return "";
+  return '<div class="card" style="margin-top:20px"><div class="ch">' +
+    '<h3>Tarefas de hoje e atrasadas</h3><span class="n">' + urg.length + '</span>' +
+    '<div class="grow"></div><button class="btn sm" data-go-tarefas="1">Ver todas</button></div>' +
+    '<div class="cb">' + urg.slice(0,6).map(linhaTarefa).join("") + '</div></div>';
+}
+
+function renderTarefas(){
+  if (State.semTarefas) {
+    $("#content").innerHTML = '<div class="phead"><h2>Tarefas</h2></div>' +
+      '<div class="card"><div class="empty"><div class="mk">LC</div>' +
+      '<p>A tabela de tarefas ainda não existe neste banco. Rode o <b>schema_supabase.sql</b> ' +
+      'no SQL Editor do Supabase para criá-la.</p></div></div>';
+    return;
+  }
+  const lista = tarefasFiltradas();
+  const f = State.filtroT;
+  const opt = (v,txt,sel) => '<option value="' + esc(v) + '"' + (sel === v ? " selected" : "") + ">" + esc(txt) + "</option>";
+  const porGrupo = {};
+  lista.forEach(t => { const g = grupoTarefa(t); (porGrupo[g] = porGrupo[g] || []).push(t); });
+
+  const corpo = GRUPOS_TAREFA.filter(g => (porGrupo[g[0]] || []).length).map(g =>
+    '<div class="tgrupo' + (g[2] ? " urgente" : "") + '"><div class="gh"><span>' + g[1] + '</span>' +
+      '<span class="n">' + porGrupo[g[0]].length + '</span></div>' +
+      ordenaTarefas(porGrupo[g[0]]).map(linhaTarefa).join("") + '</div>').join("");
+
+  $("#content").innerHTML =
+    '<div class="phead"><h2>Tarefas</h2>' +
+      '<div class="sub">diligências: cartório, prefeitura, protocolos</div>' +
+      '<div class="grow"></div><button class="btn primary" data-nova-tarefa="1">+ Nova tarefa</button></div>' +
+    '<div class="filters">' +
+      '<select id="t-status">' + opt("","Todas as situações",f.status) + opt("__pendentes","Pendentes",f.status) +
+        opt("__atrasadas","Somente atrasadas",f.status) + STATUS_TAREFA.map(x => opt(x,x,f.status)).join("") + '</select>' +
+      '<select id="t-local">' + opt("","Todos os lugares",f.local) + LOCAIS.map(x => opt(x,x,f.local)).join("") + '</select>' +
+      '<select id="t-cliente">' + opt("","Todos os clientes",f.cliente) +
+        State.clientes.map(c => opt(c.id,c.nome,f.cliente)).join("") + '</select>' +
+      '<div class="grow"></div><button class="btn sm" id="t-limpar">Limpar filtros</button>' +
+    '</div>' +
+    (corpo || '<div class="card"><div class="empty"><div class="mk">LC</div>' +
+      '<p>Nenhuma tarefa com esses filtros. Use esta aba para registrar ida ao cartório, ' +
+      'protocolo na prefeitura, retirada de documento — qualquer diligência que precise de controle.</p>' +
+      '<button class="btn primary" data-nova-tarefa="1">+ Nova tarefa</button></div></div>');
+
+  $("#t-status").addEventListener("change", e => { State.filtroT.status = e.target.value; render(); });
+  $("#t-local").addEventListener("change", e => { State.filtroT.local = e.target.value; render(); });
+  $("#t-cliente").addEventListener("change", e => { State.filtroT.cliente = e.target.value; render(); });
+  $("#t-limpar").addEventListener("click", () => {
+    State.filtroT = { cliente:"", status:"", local:"" };
+    State.busca = ""; $("#busca").value = ""; render();
+  });
+  ligarComuns();
+}
+
+async function mudarStatusTarefa(id, novo){
+  const t = State.tarefas.find(x => x.id === id);
+  if (!t || t.status === novo) return;
+  const patch = { status:novo,
+    historico: addHistorico(t, 'Situação alterada de "' + t.status + '" para "' + novo + '".') };
+  if (novo === "Concluída") { patch.concluida_em = new Date().toISOString(); patch.concluida_por = quem(); }
+  else { patch.concluida_em = null; patch.concluida_por = null; }
+  try {
+    await atualizarRegistro("tarefas", id, patch);
+    toast(novo === "Concluída" ? "Tarefa concluída." : "Situação: " + novo);
+    render();
+    if ($("#overlay").classList.contains("on")) abrirTarefa(id);
+  } catch(e){ toast("Erro: " + e.message, "err"); }
+}
+function alternarTarefa(id){
+  const t = State.tarefas.find(x => x.id === id);
+  if (!t) return;
+  mudarStatusTarefa(id, t.status === "Concluída" ? "A fazer" : "Concluída");
+}
+
+function formTarefa(id){
+  const t = id ? State.tarefas.find(x => x.id === id) : null;
+  const opt = (v,txt,sel) => '<option value="' + esc(v) + '"' + (sel === v ? " selected" : "") + ">" + esc(txt) + "</option>";
+  const selCli  = t ? (t.cliente_id || "") : "";
+  const selDist = t ? (t.distrato_id || "") : "";
+  const m = abrirModal(
+    '<div class="mh"><h3>' + (t ? "Editar " + codigoTarefa(t) : "Nova tarefa") + '</h3>' +
+      '<button class="x" data-fechar>✕</button></div>' +
+    '<div class="mb">' +
+      '<div class="fg"><label>O que precisa ser feito *</label>' +
+        '<input id="tf-titulo" value="' + esc(t && t.titulo) + '" placeholder="ex.: Registrar distrato do lote 12"></div>' +
+      '<div class="g2">' +
+        '<div class="fg"><label>Onde</label><select id="tf-local">' +
+          LOCAIS.map(x => opt(x,x, t ? t.local : "Cartório de Notas")).join("") + '</select></div>' +
+        '<div class="fg"><label>Qual órgão / cartório</label>' +
+          '<input id="tf-orgao" value="' + esc(t && t.orgao) + '" placeholder="ex.: 2º Ofício de Notas"></div>' +
+        '<div class="fg full"><label>Endereço</label><input id="tf-end" value="' + esc(t && t.endereco) + '"></div>' +
+        '<div class="fg"><label>Data</label><input type="date" id="tf-data" value="' +
+          esc(t ? String(t.data||"").slice(0,10) : hojeISO()) + '"></div>' +
+        '<div class="fg"><label>Horário (opcional)</label><input type="time" id="tf-hora" value="' + esc(t && t.hora) + '"></div>' +
+        '<div class="fg"><label>Responsável</label><input id="tf-resp" value="' + esc(t ? t.responsavel : quem()) + '"></div>' +
+        '<div class="fg"><label>Prioridade</label><select id="tf-pri">' +
+          opt("Normal","Normal", t ? t.prioridade : "Normal") +
+          opt("Urgente","Urgente", t ? t.prioridade : "Normal") + '</select></div>' +
+        '<div class="fg"><label>Cliente (opcional)</label><select id="tf-cli">' +
+          opt("","— nenhum —", selCli) + State.clientes.map(c => opt(c.id,c.nome,selCli)).join("") + '</select></div>' +
+        '<div class="fg"><label>Distrato ligado (opcional)</label><select id="tf-dist">' +
+          opt("","— nenhum —", selDist) + State.distratos.map(d =>
+            opt(d.id, codigo(d) + " — " + (d.adquirente || d.tipo_documento), selDist)).join("") + '</select></div>' +
+        (t ? '<div class="fg"><label>Situação</label><select id="tf-st">' +
+          STATUS_TAREFA.map(x => opt(x,x,t.status)).join("") + '</select></div>' : '') +
+        '<div class="fg full"><label>Observações</label><textarea id="tf-obs" rows="3">' + esc(t && t.observacoes) + '</textarea></div>' +
+      '</div></div>' +
+    '<div class="mf">' + (t ? '<button class="btn danger" id="tf-excluir">Excluir</button>' : "") +
+      '<div class="grow"></div><button class="btn" data-fechar>Cancelar</button>' +
+      '<button class="btn primary" id="tf-salvar">' + (t ? "Salvar" : "Cadastrar") + '</button></div>', "lg");
+  setTimeout(() => $("#tf-titulo", m).focus(), 60);
+
+  $("#tf-salvar", m).addEventListener("click", async () => {
+    const titulo = $("#tf-titulo", m).value.trim();
+    if (!titulo) { toast("Descreva o que precisa ser feito.", "err"); return; }
+    const dados = { titulo:titulo, local:$("#tf-local",m).value,
+      orgao:$("#tf-orgao",m).value.trim()||null, endereco:$("#tf-end",m).value.trim()||null,
+      data:$("#tf-data",m).value||null, hora:$("#tf-hora",m).value||null,
+      responsavel:$("#tf-resp",m).value.trim()||null, prioridade:$("#tf-pri",m).value,
+      cliente_id:$("#tf-cli",m).value||null, distrato_id:$("#tf-dist",m).value||null,
+      observacoes:$("#tf-obs",m).value.trim()||null };
+    try {
+      if (t) {
+        const novoStatus = $("#tf-st", m).value;
+        if (novoStatus !== t.status) {
+          dados.status = novoStatus;
+          dados.historico = addHistorico(t, 'Situação alterada de "' + t.status + '" para "' + novoStatus + '".');
+          if (novoStatus === "Concluída") { dados.concluida_em = new Date().toISOString(); dados.concluida_por = quem(); }
+          else { dados.concluida_em = null; dados.concluida_por = null; }
+        }
+        const { error } = await sb.from("tarefas").update(dados).eq("id", t.id); if (error) throw error;
+        fecharModal(); await recarregar(true); toast("Tarefa atualizada.");
+      } else {
+        dados.status = "A fazer"; dados.criado_por = quem();
+        dados.historico = addHistorico({}, "Tarefa cadastrada.");
+        const { error } = await sb.from("tarefas").insert(dados); if (error) throw error;
+        fecharModal(); await recarregar(true); toast("Tarefa cadastrada.");
+      }
+    } catch(e){ toast("Erro ao salvar: " + e.message, "err"); }
+  });
+
+  if (t) $("#tf-excluir", m).addEventListener("click", async () => {
+    if (!confirm("Excluir " + codigoTarefa(t) + "?")) return;
+    try {
+      const paths = (t.arquivos || []).map(a => a.path);
+      if (paths.length) await sb.storage.from(BUCKET).remove(paths);
+      const { error } = await sb.from("tarefas").delete().eq("id", t.id); if (error) throw error;
+      fecharModal(); await recarregar(true); toast("Tarefa excluída.");
+    } catch(e){ toast("Erro: " + e.message, "err"); }
+  });
+}
+
+function abrirTarefa(id){
+  const t = State.tarefas.find(x => x.id === id);
+  if (!t) return;
+  const c  = t.cliente_id  ? State.clientes.find(x => x.id === t.cliente_id) : null;
+  const dv = t.distrato_id ? State.distratos.find(x => x.id === t.distrato_id) : null;
+  const hist = (Array.isArray(t.historico) ? t.historico : []).slice().reverse();
+
+  const acoes = [];
+  if (t.status === "A fazer") acoes.push('<button class="btn" data-tst="Em andamento">Marcar em andamento</button>');
+  if (tarefaPendente(t)) acoes.push('<button class="btn primary" data-tst="Concluída">Concluir</button>');
+  if (!tarefaPendente(t)) acoes.push('<button class="btn ghost" data-tst="A fazer">Reabrir</button>');
+  if (tarefaPendente(t)) acoes.push('<button class="btn ghost" data-tst="Cancelada">Cancelar</button>');
+
+  const m = abrirModal(
+    '<div class="mh"><h3>' + esc(t.titulo) + '</h3>' + tagStatusTarefa(t.status) +
+      (t.prioridade === "Urgente" && tarefaPendente(t) ? '<span class="tag t-urg">urgente</span>' : "") +
+      '<button class="x" data-fechar>✕</button></div>' +
+    '<div class="mb">' +
+      '<div class="kv">' +
+        '<div><div class="k">Código</div><div class="v mono" style="font-size:12.5px">' + codigoTarefa(t) + '</div></div>' +
+        '<div><div class="k">Onde</div><div class="v">' + esc(t.local) + '</div></div>' +
+        '<div><div class="k">Órgão / cartório</div><div class="v' + (t.orgao ? '' : ' nao') + '">' + esc(t.orgao || "—") + '</div></div>' +
+        '<div><div class="k">Endereço</div><div class="v' + (t.endereco ? '' : ' nao') + '">' + esc(t.endereco || "—") + '</div></div>' +
+        '<div><div class="k">Quando</div><div class="v">' + chipQuando(t) + '</div></div>' +
+        '<div><div class="k">Responsável</div><div class="v' + (t.responsavel ? '' : ' nao') + '">' + esc(t.responsavel || "—") + '</div></div>' +
+        '<div><div class="k">Cliente</div><div class="v' + (c ? '' : ' nao') + '">' + esc(c ? c.nome : "—") + '</div></div>' +
+        '<div><div class="k">Distrato ligado</div><div class="v' + (dv ? '' : ' nao') + '">' +
+          (dv ? codigo(dv) + " — " + esc(dv.adquirente || dv.tipo_documento) : "—") + '</div></div>' +
+        (t.concluida_em ? '<div><div class="k">Concluída em</div><div class="v">' + fmtDataHora(t.concluida_em) + '</div></div>' : "") +
+      '</div>' +
+      (t.observacoes ? '<div class="sec"><div class="st">Observações</div>' +
+        '<div style="font-size:12.8px;color:var(--text-2);white-space:pre-wrap">' + esc(t.observacoes) + '</div></div>' : "") +
+      '<div class="sec destaque"><div class="st">Resultado da diligência</div>' +
+        '<textarea id="tx-resultado" rows="3" placeholder="Número de protocolo, certidão obtida, o que ficou pendente…" ' +
+        'style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-sm);' +
+        'background:var(--panel);font-size:12.8px;outline:none;font-family:inherit">' + esc(t.resultado) + '</textarea>' +
+        '<button class="btn sm" id="tx-salvar-res" style="margin-top:9px">Salvar resultado</button></div>' +
+      blocoArquivos(t, "anexo", "Comprovantes e protocolos", "Anexe aqui o protocolo, a certidão ou o comprovante", false) +
+      '<div class="sec"><div class="st">Histórico</div>' +
+        (hist.length ? '<ul class="tl">' + hist.map(h =>
+            '<li>' + esc(h.texto) + '<div class="w">' + fmtData(h.data) + " às " + esc(h.hora) + " · " + esc(h.quem) + '</div></li>').join("") + '</ul>'
+          : '<div style="font-size:12px;color:var(--text-3)">Sem registros.</div>') + '</div>' +
+    '</div>' +
+    '<div class="mf"><button class="btn" id="tx-editar">Editar</button><div class="grow"></div>' + acoes.join("") + '</div>', "lg");
+
+  $$("[data-tst]", m).forEach(b => b.addEventListener("click", () => mudarStatusTarefa(t.id, b.dataset.tst)));
+  $("#tx-editar", m).addEventListener("click", () => { fecharModal(); formTarefa(t.id); });
+  $$("[data-dl]", m).forEach(b => b.addEventListener("click", () => {
+    const a = (t.arquivos || []).find(x => x.path === b.dataset.dl); if (a) baixarArquivo(a); }));
+  $$("[data-rm]", m).forEach(b => b.addEventListener("click", () => {
+    const a = (t.arquivos || []).find(x => x.path === b.dataset.rm); if (a) apagarArquivo("tarefas", t, a); }));
+  $$("[data-up]", m).forEach(b => b.addEventListener("click", () => {
+    const inp = document.createElement("input");
+    inp.type = "file";
+    inp.onchange = () => { if (inp.files[0]) enviarArquivo("tarefas", t, inp.files[0], "anexo"); };
+    inp.click();
+  }));
+  $("#tx-salvar-res", m).addEventListener("click", async () => {
+    const txt = $("#tx-resultado", m).value.trim();
+    try {
+      await atualizarRegistro("tarefas", t.id, { resultado:txt||null,
+        historico: addHistorico(t, "Resultado da diligência atualizado.") });
+      toast("Resultado salvo."); render();
+    } catch(e){ toast("Erro: " + e.message, "err"); }
+  });
+}
+
+/* ============================================================================
    LIGAÇÕES COMUNS
    ============================================================================ */
 function ligarComuns(){
@@ -1012,12 +1366,22 @@ function ligarComuns(){
   $$("[data-novo-cliente]").forEach(el => el.addEventListener("click", () => formCliente(null)));
   $$("[data-edit-cliente]").forEach(el => el.addEventListener("click", () => formCliente(el.dataset.editCliente)));
   $$("[data-go-clientes]").forEach(el => el.addEventListener("click", () => irPara("clientes")));
+  $$("[data-tarefa]").forEach(el => el.addEventListener("click", ev => {
+    if (ev.target.closest("[data-check]")) return;
+    abrirTarefa(el.dataset.tarefa);
+  }));
+  $$("[data-check]").forEach(el => el.addEventListener("click", ev => {
+    ev.stopPropagation(); alternarTarefa(el.dataset.check);
+  }));
+  $$("[data-nova-tarefa]").forEach(el => el.addEventListener("click", () => formTarefa(null)));
+  $$("[data-go-tarefas]").forEach(el => el.addEventListener("click", () => irPara("tarefas")));
 }
 
 function render(){
   renderTabs();
   if (State.view === "painel") renderPainel();
   else if (State.view === "distratos") renderDistratos();
+  else if (State.view === "tarefas") renderTarefas();
   else if (State.view === "clientes") renderClientes();
   else if (State.view === "cliente") renderCliente();
 }
@@ -1165,7 +1529,7 @@ function formDistrato(id, clientePre){
         const { data:novo, error } = await sb.from("distratos").insert(dados).select().single();
         if (error) throw error;
         fecharModal(); State.distratos.unshift(novo);
-        if (arquivoNovo) await enviarArquivo(novo, arquivoNovo, "original");
+        if (arquivoNovo) await enviarArquivo("distratos", novo, arquivoNovo, "original");
         await recarregar(true); toast("Distrato cadastrado.");
       }
     } catch(e){ toast("Erro ao salvar: " + e.message, "err"); }
@@ -1265,11 +1629,11 @@ function abrirDistrato(id){
   $$("[data-dl]", m).forEach(b => b.addEventListener("click", () => {
     const a = (d.arquivos || []).find(x => x.path === b.dataset.dl); if (a) baixarArquivo(a); }));
   $$("[data-rm]", m).forEach(b => b.addEventListener("click", () => {
-    const a = (d.arquivos || []).find(x => x.path === b.dataset.rm); if (a) apagarArquivo(d, a); }));
+    const a = (d.arquivos || []).find(x => x.path === b.dataset.rm); if (a) apagarArquivo("distratos", d, a); }));
   $$("[data-up]", m).forEach(b => b.addEventListener("click", () => {
     const inp = document.createElement("input");
     inp.type = "file";
-    inp.onchange = () => { if (inp.files[0]) enviarArquivo(d, inp.files[0], b.dataset.up); };
+    inp.onchange = () => { if (inp.files[0]) enviarArquivo("distratos", d, inp.files[0], b.dataset.up); };
     inp.click();
   }));
   $("#x-salvar-parecer", m).addEventListener("click", async () => {

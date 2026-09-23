@@ -147,3 +147,59 @@ create trigger distratos_toca_atualizado
 -- ============================================================================
 --  PRONTO. Agora crie os usuários em Authentication -> Users.
 -- ============================================================================
+
+-- ============================================================================
+--  5. TAREFAS EXTRAJUDICIAIS (diligencias: cartorio, prefeitura, etc.)
+-- ============================================================================
+
+create table if not exists public.tarefas (
+  id            uuid primary key default gen_random_uuid(),
+  numero        bigint generated always as identity,
+
+  titulo        text not null,                       -- o que precisa ser feito
+  local         text not null default 'Cartorio de Notas',
+  orgao         text,                                -- qual cartorio/orgao especificamente
+  endereco      text,
+
+  cliente_id    uuid references public.clientes(id)  on delete set null,
+  distrato_id   uuid references public.distratos(id) on delete set null,
+
+  status        text not null default 'A fazer',     -- A fazer | Em andamento | Concluida | Cancelada
+  prioridade    text not null default 'Normal',      -- Normal | Urgente
+  data          date,                                -- quando ir / prazo
+  hora          text,                                -- horario marcado, opcional
+  responsavel   text,                                -- quem vai
+
+  observacoes   text,
+  resultado     text,                                -- protocolo, numero obtido, o que resultou
+
+  arquivos      jsonb not null default '[]'::jsonb,
+  historico     jsonb not null default '[]'::jsonb,
+
+  criado_em     timestamptz not null default now(),
+  criado_por    text,
+  atualizado_em timestamptz not null default now(),
+  concluida_em  timestamptz,
+  concluida_por text
+);
+
+create index if not exists tarefas_status_idx  on public.tarefas (status);
+create index if not exists tarefas_data_idx    on public.tarefas (data);
+create index if not exists tarefas_cliente_idx on public.tarefas (cliente_id);
+
+grant select, insert, update, delete on public.tarefas to authenticated;
+revoke all on public.tarefas from anon;
+
+alter table public.tarefas enable row level security;
+
+drop policy if exists "somente logado" on public.tarefas;
+create policy "somente logado" on public.tarefas
+  for all to authenticated
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+drop trigger if exists tarefas_toca_atualizado on public.tarefas;
+create trigger tarefas_toca_atualizado
+  before update on public.tarefas
+  for each row execute function public.toca_atualizado_em();
+
