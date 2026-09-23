@@ -348,7 +348,9 @@ td .dim{color:var(--text-3);font-size:11.5px}
    RELATORIO — graficos de rosca
    ============================================================ */
 .relatorio{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
-@media(max-width:900px){.relatorio{grid-template-columns:1fr}}
+.relatorio.tres{grid-template-columns:repeat(3,1fr)}
+@media(max-width:1180px){.relatorio.tres{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){.relatorio,.relatorio.tres{grid-template-columns:1fr}}
 .rosca{display:flex;align-items:center;gap:22px}
 .rosca > svg{flex:none;width:132px;height:132px}
 .rosca .legenda{flex:1;min-width:0}
@@ -473,7 +475,7 @@ td .dim{color:var(--text-3);font-size:11.5px}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
     <button class="tbtn" id="btn-tema" title="Tema claro/escuro">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
-    <button class="btn primary" id="btn-novo">+ Novo distrato</button>
+    <button class="btn primary" id="btn-novo">+ Novo</button>
     <div class="who">
       <div class="av" id="av"></div>
       <div class="em" id="em"></div>
@@ -504,6 +506,25 @@ const MAX_MB  = 25;
 const STATUS = ["A corrigir", "Em correção", "Corrigido", "Finalizado"];
 const TIPOS  = ["Distrato", "Notificação extrajudicial", "Rescisão", "Aditivo", "Outro"];
 const TIPOS_CLIENTE = ["Loteamento", "Construtora", "Imobiliária", "Incorporadora", "Outro"];
+
+/* Os dois modulos de documento seguem o mesmo fluxo de correcao e compartilham
+   todo o codigo de tela; so mudam os rotulos, os tipos e dois campos proprios
+   da quitacao. */
+const MODULOS = {
+  distratos: {
+    tabela:"distratos", rotulo:"Distratos", singular:"distrato", prefixo:"DST",
+    tipos:["Distrato", "Notificação extrajudicial", "Rescisão", "Aditivo", "Outro"],
+    tipoPadrao:"Distrato", temValor:false, novo:"+ Novo distrato",
+    vazio:"Nenhum distrato encontrado com esses filtros."
+  },
+  quitacoes: {
+    tabela:"quitacoes", rotulo:"Termos de Quitação", singular:"termo de quitação", prefixo:"TQ",
+    tipos:["Termo de Quitação", "Quitação parcial", "Outro"],
+    tipoPadrao:"Termo de Quitação", temValor:true, novo:"+ Novo termo",
+    vazio:"Nenhum termo de quitação encontrado com esses filtros."
+  }
+};
+const MODS = ["distratos", "quitacoes"];
 const STATUS_TAREFA = ["A fazer", "Em andamento", "Concluída", "Cancelada"];
 const LOCAIS = ["Cartório de Notas", "Cartório de Registro de Imóveis", "Prefeitura",
                 "Receita Federal", "Junta Comercial", "Banco", "INSS", "Detran",
@@ -511,8 +532,11 @@ const LOCAIS = ["Cartório de Notas", "Cartório de Registro de Imóveis", "Pref
 
 let sb = null;
 const State = {
-  user:null, clientes:[], distratos:[], tarefas:[], view:"painel", clienteAberto:null,
-  busca:"", vistaDistratos:"lista", filtro:{ cliente:"", status:"", tipo:"", prazo:"" },
+  user:null, clientes:[], distratos:[], quitacoes:[], tarefas:[],
+  view:"painel", clienteAberto:null, busca:"",
+  vistas:{ distratos:"lista", quitacoes:"lista" },
+  filtros:{ distratos:{ cliente:"", status:"", tipo:"", prazo:"" },
+            quitacoes:{ cliente:"", status:"", tipo:"", prazo:"" } },
   filtroT:{ cliente:"", status:"", local:"" }
 };
 
@@ -578,7 +602,7 @@ function chipPrazo(d){
 function estaAtrasado(d){ return d.prazo && diasAte(d.prazo) < 0 && (d.status === "A corrigir" || d.status === "Em correção"); }
 function pendente(d){ return d.status === "A corrigir" || d.status === "Em correção"; }
 function nomeCliente(id){ const c = State.clientes.find(x => x.id === id); return c ? c.nome : "—"; }
-function codigo(d){ return "DST-" + String(d.numero).padStart(4,"0"); }
+function codigo(d){ return (MODULOS[d.__mod] || MODULOS.distratos).prefixo + "-" + String(d.numero).padStart(4,"0"); }
 function identificaLote(d){
   const p = [];
   if (d.quadra) p.push("Q" + d.quadra);
@@ -664,14 +688,21 @@ $("#btn-sair").addEventListener("click", async () => { await sb.auth.signOut(); 
    DADOS
    ============================================================================ */
 async function carregarTudo(){
-  const [rc, rd, rt] = await Promise.all([
+  const [rc, rd, rq, rt] = await Promise.all([
     sb.from("clientes").select("*").order("nome", { ascending:true }),
     sb.from("distratos").select("*").order("numero", { ascending:false }),
+    sb.from("quitacoes").select("*").order("numero", { ascending:false }),
     sb.from("tarefas").select("*").order("numero", { ascending:false })
   ]);
   if (rc.error) throw rc.error;
   if (rd.error) throw rd.error;
-  State.clientes = rc.data || []; State.distratos = rd.data || [];
+  State.clientes = rc.data || [];
+  // __mod marca de qual modulo o registro veio, para o codigo e a ficha saberem.
+  State.distratos = (rd.data || []).map(x => { x.__mod = "distratos"; return x; });
+  if (rq.error) {
+    if (!/does not exist|schema cache|relation/i.test(rq.error.message)) throw rq.error;
+    State.quitacoes = [];
+  } else State.quitacoes = (rq.data || []).map(x => { x.__mod = "quitacoes"; return x; });
   // A tabela de tarefas pode nao existir em bancos antigos: nesse caso segue sem elas.
   if (rt.error) {
     if (!/does not exist|schema cache|relation/i.test(rt.error.message)) throw rt.error;
@@ -724,7 +755,7 @@ async function enviarArquivo(tabela, distrato, file, tipo){
     const novo = await atualizarRegistro(tabela, distrato.id, patch);
     carregando(false); toast("Arquivo anexado."); render();
     if ($("#overlay").classList.contains("on")) {
-      if (tabela === "tarefas") abrirTarefa(novo.id); else abrirDistrato(novo.id);
+      if (tabela === "tarefas") abrirTarefa(novo.id); else abrirDoc(novo.id);
     }
   } catch(e){ carregando(false); toast("Falha no envio: " + e.message, "err"); }
 }
@@ -743,17 +774,27 @@ async function apagarArquivo(tabela, distrato, arq){
     const novo = await atualizarRegistro(tabela, distrato.id, { arquivos:arquivos,
       historico: addHistorico(distrato, "Arquivo removido: " + arq.nome) });
     toast("Arquivo removido."); render();
-    if (tabela === "tarefas") abrirTarefa(novo.id); else abrirDistrato(novo.id);
+    if (tabela === "tarefas") abrirTarefa(novo.id); else abrirDoc(novo.id);
   } catch(e){ toast("Erro: " + e.message, "err"); }
 }
 
 /* ============================================================================
    FILTROS
    ============================================================================ */
-function distratosFiltrados(){
+/* Dado um id, descobre a qual módulo o registro pertence.
+   Evita ter que carregar o módulo em todo lugar que abre uma ficha. */
+function achaDoc(id){
+  for (let i = 0; i < MODS.length; i++){
+    const d = State[MODS[i]].find(x => x.id === id);
+    if (d) return { mk: MODS[i], doc: d };
+  }
+  return null;
+}
+
+function docsFiltrados(mk){
   const b = State.busca.trim().toLowerCase();
-  const f = State.filtro;
-  return State.distratos.filter(d => {
+  const f = State.filtros[mk];
+  return State[mk].filter(d => {
     if (f.cliente && d.cliente_id !== f.cliente) return false;
     if (f.status === "__pendentes") { if (!pendente(d)) return false; }
     else if (f.status === "__atrasados") { if (!estaAtrasado(d)) return false; }
@@ -764,7 +805,7 @@ function distratosFiltrados(){
     if (f.prazo === "vencidos" && !estaAtrasado(d)) return false;
     if (b) {
       const alvo = [d.adquirente,d.contrato,d.quadra,d.lote,d.empreendimento,d.cpf_adquirente,
-                    d.responsavel,d.observacoes,codigo(d),nomeCliente(d.cliente_id)]
+                    d.responsavel,d.observacoes,d.valor,codigo(d),nomeCliente(d.cliente_id)]
                     .filter(Boolean).join(" ").toLowerCase();
       if (!alvo.includes(b)) return false;
     }
@@ -791,18 +832,22 @@ function irPara(view, extra){
   $("#content").scrollTop = 0;
 }
 function renderTabs(){
-  const atrasados = State.distratos.filter(estaAtrasado).length;
+  const atrasados = State.distratos.filter(estaAtrasado).length +
+                    State.quitacoes.filter(estaAtrasado).length +
+                    State.tarefas.filter(tarefaAtrasada).length;
   const aba = (id, txt, n, ativo, alerta) =>
     '<button class="tab' + (ativo ? " active" : "") + '" data-tab="' + id + '">' + txt +
     (n ? '<span class="n' + (alerta ? " al" : "") + '">' + n + '</span>' : "") + '</button>';
   $("#tabs").innerHTML =
     aba("painel", "Painel", atrasados, State.view === "painel", true) +
     aba("distratos", "Distratos", State.distratos.length, State.view === "distratos") +
+    aba("quitacoes", "Quitações", State.quitacoes.length, State.view === "quitacoes") +
     aba("tarefas", "Extrajudiciais", State.tarefas.filter(tarefaPendente).length,
         State.view === "tarefas", State.tarefas.some(tarefaAtrasada)) +
     aba("clientes", "Loteamentos", State.clientes.length, State.view === "clientes" || State.view === "cliente");
   $$("#tabs .tab").forEach(b => b.addEventListener("click", () => {
-    State.filtro = { cliente:"", status:"", tipo:"", prazo:"" };
+    MODS.forEach(mk => { State.filtros[mk] = { cliente:"", status:"", tipo:"", prazo:"" }; });
+    State.filtroT = { cliente:"", status:"", local:"" };
     irPara(b.dataset.tab);
   }));
 }
@@ -885,108 +930,110 @@ function rosca(fatias, filtros){
 function plural(n, singular, plural_){ return n + " " + (n === 1 ? singular : plural_); }
 
 function renderPainel(){
-  const ds = State.distratos, ts = State.tarefas;
-  const nD = s => ds.filter(d => d.status === s).length;
-  const nT = s => ts.filter(t => t.status === s).length;
+  const ds = State.distratos, qs = State.quitacoes, ts = State.tarefas;
+  const cont = (arr, s) => arr.filter(x => x.status === s).length;
 
-  const pendD = ds.filter(pendente);
-  const pendT = ts.filter(tarefaPendente);
-  const atrD  = ds.filter(estaAtrasado);
-  const atrT  = ts.filter(tarefaAtrasada);
+  const pendD = ds.filter(pendente), pendQ = qs.filter(pendente), pendT = ts.filter(tarefaPendente);
+  const atrD = ds.filter(estaAtrasado), atrQ = qs.filter(estaAtrasado), atrT = ts.filter(tarefaAtrasada);
   const hojeD = ds.filter(d => pendente(d) && diasAte(d.prazo) === 0);
+  const hojeQ = qs.filter(d => pendente(d) && diasAte(d.prazo) === 0);
   const hojeT = ts.filter(t => tarefaPendente(t) && diasAte(t.data) === 0);
-  const atrasoTotal = atrD.length + atrT.length;
-  const hojeTotal   = hojeD.length + hojeT.length;
+  const atrasoTotal = atrD.length + atrQ.length + atrT.length;
+  const hojeTotal = hojeD.length + hojeQ.length + hojeT.length;
 
   const strip =
     '<div class="strip">' +
       '<div class="s bronze" data-ir="distratos"><div class="k">Distratos pendentes</div>' +
         '<div class="v">' + pendD.length + '</div><div class="d">de ' + ds.length + ' no total</div></div>' +
+      '<div class="s bronze" data-ir="quitacoes"><div class="k">Quitações pendentes</div>' +
+        '<div class="v">' + pendQ.length + '</div><div class="d">de ' + qs.length + ' no total</div></div>' +
       '<div class="s bronze" data-ir="tarefas"><div class="k">Extrajudiciais pendentes</div>' +
         '<div class="v">' + pendT.length + '</div><div class="d">de ' + ts.length + ' no total</div></div>' +
       '<div class="s' + (atrasoTotal ? " alerta" : "") + '" data-ir="atrasados"><div class="k">Atrasados</div>' +
         '<div class="v">' + atrasoTotal + '</div>' +
-        '<div class="d">' + plural(atrD.length, "distrato", "distratos") + ' · ' +
-          plural(atrT.length, "extrajudicial", "extrajudiciais") + '</div></div>' +
+        '<div class="d">' + atrD.length + ' · ' + atrQ.length + ' · ' + atrT.length + '</div></div>' +
       '<div class="s" data-ir="hoje"><div class="k">Vencendo hoje</div>' +
         '<div class="v">' + hojeTotal + '</div>' +
-        '<div class="d">' + plural(hojeD.length, "distrato", "distratos") + ' · ' +
-          plural(hojeT.length, "extrajudicial", "extrajudiciais") + '</div></div>' +
+        '<div class="d">' + hojeD.length + ' · ' + hojeQ.length + ' · ' + hojeT.length + '</div></div>' +
     '</div>';
 
   const faixa = atrasoTotal
     ? '<div class="alerta-faixa"><span class="ico">!</span><span class="txt">' +
-        '<b>' + atrasoTotal + (atrasoTotal === 1 ? ' registro está' : ' registros estão') + ' com prazo vencido.</b> ' +
-        (atrD.length ? plural(atrD.length, "distrato aguardando correção", "distratos aguardando correção") : "") +
-        (atrD.length && atrT.length ? " e " : "") +
-        (atrT.length ? plural(atrT.length, "diligência não cumprida", "diligências não cumpridas") : "") +
-        '.</span>' +
-        '<button class="btn sm" data-ir="atrasados">Ver</button></div>'
+        '<b>' + plural(atrasoTotal, "registro está", "registros estão") + ' com prazo vencido.</b> ' +
+        [atrD.length ? plural(atrD.length, "distrato", "distratos") : "",
+         atrQ.length ? plural(atrQ.length, "termo de quitação", "termos de quitação") : "",
+         atrT.length ? plural(atrT.length, "extrajudicial", "extrajudiciais") : ""]
+          .filter(Boolean).join(", ") +
+        '.</span><button class="btn sm" data-ir="atrasados">Ver</button></div>'
     : "";
 
+  const cartaoRosca = (titulo, arr, situacoes, alvo, filtravel) =>
+    '<div class="card" style="margin:0"><div class="ch"><h3>' + titulo + '</h3>' +
+      '<span class="n">' + arr.length + '</span><div class="grow"></div>' +
+      '<button class="btn sm" data-ir="' + alvo + '">Abrir</button></div>' +
+      '<div class="cb">' + rosca(situacoes.map(s => ({ rotulo:s, valor:cont(arr, s) })), filtravel) + '</div></div>';
+
   const relatorio =
-    '<div class="relatorio">' +
-      '<div class="card" style="margin:0"><div class="ch"><h3>Distratos</h3>' +
-        '<span class="n">' + ds.length + '</span><div class="grow"></div>' +
-        '<button class="btn sm" data-ir="distratos">Abrir</button></div>' +
-        '<div class="cb">' + rosca(STATUS.map(x => ({ rotulo:x, valor:nD(x) })), true) + '</div></div>' +
-      '<div class="card" style="margin:0"><div class="ch"><h3>Extrajudiciais</h3>' +
-        '<span class="n">' + ts.length + '</span><div class="grow"></div>' +
-        '<button class="btn sm" data-ir="tarefas">Abrir</button></div>' +
-        '<div class="cb">' + rosca(STATUS_TAREFA.map(x => ({ rotulo:x, valor:nT(x) })), false) + '</div></div>' +
+    '<div class="relatorio tres">' +
+      cartaoRosca("Distratos", ds, STATUS, "distratos", "distratos") +
+      cartaoRosca("Termos de quitação", qs, STATUS, "quitacoes", "quitacoes") +
+      cartaoRosca("Extrajudiciais", ts, STATUS_TAREFA, "tarefas", false) +
     '</div>';
 
   const porCliente = State.clientes.map(c => {
-    const l = ds.filter(d => d.cliente_id === c.id);
+    const ld = ds.filter(d => d.cliente_id === c.id);
+    const lq = qs.filter(d => d.cliente_id === c.id);
     const lt = ts.filter(t => t.cliente_id === c.id);
-    return { c:c, total:l.length + lt.length, distratos:l.length,
-      corrigir:l.filter(d => d.status === "A corrigir").length,
-      pronto:l.filter(d => d.status === "Corrigido").length,
+    return { c:c, total:ld.length + lq.length + lt.length,
+      distratos:ld.length, quitacoes:lq.length,
+      corrigir:ld.filter(d => d.status === "A corrigir").length + lq.filter(d => d.status === "A corrigir").length,
       extra:lt.filter(tarefaPendente).length,
-      atraso:l.filter(estaAtrasado).length + lt.filter(tarefaAtrasada).length };
+      atraso:ld.filter(estaAtrasado).length + lq.filter(estaAtrasado).length + lt.filter(tarefaAtrasada).length };
   }).filter(x => x.total > 0).sort((a,b) => (b.corrigir + b.extra) - (a.corrigir + a.extra));
 
   const tabela = porCliente.length
     ? '<div class="card"><div class="ch"><h3>Resumo por loteamento</h3>' +
       '<span class="n">' + porCliente.length + '</span></div><div class="cb flush">' +
-      '<table><thead><tr><th>Loteamento</th><th>Distratos</th><th>A corrigir</th><th>Corrigidos</th>' +
+      '<table><thead><tr><th>Loteamento</th><th>Distratos</th><th>Quitações</th><th>A corrigir</th>' +
       '<th>Extrajudiciais pendentes</th><th>Atrasados</th></tr></thead><tbody>' +
       porCliente.map(x =>
         '<tr data-cliente="' + x.c.id + '"><td class="strong">' + esc(x.c.nome) + '</td>' +
-        '<td>' + x.distratos + '</td>' +
+        '<td>' + x.distratos + '</td><td>' + x.quitacoes + '</td>' +
         '<td>' + (x.corrigir ? '<span class="tag t-corrigir">' + x.corrigir + '</span>' : '<span class="dim">—</span>') + '</td>' +
-        '<td>' + (x.pronto ? '<span class="tag t-corrigido">' + x.pronto + '</span>' : '<span class="dim">—</span>') + '</td>' +
         '<td>' + (x.extra ? '<span class="tag t-emcorrecao">' + x.extra + '</span>' : '<span class="dim">—</span>') + '</td>' +
         '<td>' + (x.atraso ? '<span class="tag t-alerta">' + x.atraso + '</span>' : '<span class="dim">—</span>') + '</td></tr>').join("") +
       '</tbody></table></div></div>'
-    : (ds.length || ts.length ? "" :
+    : (ds.length || qs.length || ts.length ? "" :
       '<div class="card"><div class="empty"><div class="mk">LC</div>' +
-      '<p>Nada cadastrado ainda. Lance o primeiro distrato ou a primeira extrajudicial ' +
-      'para o painel ganhar vida.</p>' +
-      '<button class="btn primary" data-novo="1">+ Novo distrato</button></div></div>');
+      '<p>Nada cadastrado ainda. Lance o primeiro registro para o painel ganhar vida.</p>' +
+      '<button class="btn primary" data-novo="distratos">+ Novo distrato</button></div></div>');
 
   $("#content").innerHTML =
     '<div class="phead"><h2>Painel</h2>' +
-      '<div class="sub">visão geral de distratos e extrajudiciais</div></div>' +
+      '<div class="sub">visão geral de distratos, quitações e extrajudiciais</div></div>' +
     faixa + strip + relatorio + blocoTarefasPainel() + tabela;
 
   $$("[data-ir]").forEach(el => el.addEventListener("click", () => {
     const alvo = el.dataset.ir;
-    if (alvo === "distratos") { State.filtro = { cliente:"", status:"", tipo:"", prazo:"" }; irPara("distratos"); }
-    else if (alvo === "tarefas") { State.filtroT = { cliente:"", status:"", local:"" }; irPara("tarefas"); }
-    else if (alvo === "atrasados") { State.filtro = { cliente:"", status:"__atrasados", tipo:"", prazo:"" }; irPara("distratos"); }
-    else if (alvo === "hoje") { State.filtro = { cliente:"", status:"__pendentes", tipo:"", prazo:"hoje" }; irPara("distratos"); }
+    if (alvo === "distratos" || alvo === "quitacoes") {
+      State.filtros[alvo] = { cliente:"", status:"", tipo:"", prazo:"" }; irPara(alvo);
+    } else if (alvo === "tarefas") { State.filtroT = { cliente:"", status:"", local:"" }; irPara("tarefas"); }
+    else if (alvo === "atrasados") { State.filtros.distratos = { cliente:"", status:"__atrasados", tipo:"", prazo:"" }; irPara("distratos"); }
+    else if (alvo === "hoje") { State.filtros.distratos = { cliente:"", status:"__pendentes", tipo:"", prazo:"hoje" }; irPara("distratos"); }
   }));
   $$(".leg[data-f]").forEach(el => el.addEventListener("click", () => {
-    State.filtro = { cliente:"", status:el.dataset.f, tipo:"", prazo:"" };
-    irPara("distratos");
+    const mk = el.closest(".card").querySelector("[data-ir]").dataset.ir;
+    State.filtros[mk] = { cliente:"", status:el.dataset.f, tipo:"", prazo:"" };
+    irPara(mk);
   }));
   ligarComuns();
 }
 
 /* Quadro de colunas: o distrato caminha de "A corrigir" ate "Finalizado".
    Vive na aba Distratos, porque o painel passou a ser relatorio. */
-function quadroDistratos(lista){
+/* Quadro de colunas: o documento caminha de "A corrigir" ate "Finalizado".
+   Vive na aba do proprio modulo, porque o painel e relatorio. */
+function quadroDocs(lista){
   return '<div class="board">' + STATUS.map(st => {
     const col = ordenaFila(lista.filter(d => d.status === st));
     return '<div class="col" data-col="' + esc(st) + '">' +
@@ -1002,7 +1049,7 @@ function quadroDistratos(lista){
 let arrastandoId = null;
 function ligarQuadro(){
   $$(".kc").forEach(c => {
-    c.addEventListener("click", () => { if (!arrastandoId) abrirDistrato(c.dataset.id); });
+    c.addEventListener("click", () => { if (!arrastandoId) abrirDoc(c.dataset.id); });
     c.addEventListener("dragstart", ev => {
       arrastandoId = c.dataset.id;
       c.classList.add("dragging");
@@ -1022,7 +1069,8 @@ function ligarQuadro(){
       col.classList.remove("over");
       const id = ev.dataTransfer.getData("text/plain") || arrastandoId;
       const destino = col.dataset.col;
-      const d = State.distratos.find(x => x.id === id);
+      const achado = achaDoc(id);
+      const d = achado && achado.doc;
       if (!d || d.status === destino) return;
       if (destino === "Corrigido" && !ultimoArq(d, "corrigido")) {
         if (!confirm("Este distrato ainda não tem a versão corrigida anexada.\n\nMarcar como corrigido mesmo assim?")) return;
@@ -1035,33 +1083,37 @@ function ligarQuadro(){
 /* ============================================================================
    DISTRATOS
    ============================================================================ */
-function renderDistratos(){
-  const lista = ordenaFila(distratosFiltrados());
-  const f = State.filtro;
+function renderDocs(mk){
+  const M = MODULOS[mk];
+  const lista = ordenaFila(docsFiltrados(mk));
+  const f = State.filtros[mk];
   const opt = (v,t,sel) => '<option value="' + esc(v) + '"' + (sel === v ? " selected" : "") + ">" + esc(t) + "</option>";
 
   $("#content").innerHTML =
-    '<div class="phead"><h2>Distratos</h2><div class="sub">' + lista.length + ' de ' + State.distratos.length + '</div></div>' +
+    '<div class="phead"><h2>' + esc(M.rotulo) + '</h2>' +
+      '<div class="sub">' + lista.length + ' de ' + State[mk].length + '</div></div>' +
     '<div class="filters">' +
-      '<select id="f-cliente">' + opt("","Todos os loteamentos",f.cliente) + State.clientes.map(c => opt(c.id,c.nome,f.cliente)).join("") + '</select>' +
+      '<select id="f-cliente">' + opt("","Todos os loteamentos",f.cliente) +
+        State.clientes.map(c => opt(c.id,c.nome,f.cliente)).join("") + '</select>' +
       '<select id="f-status">' + opt("","Todas as situações",f.status) + opt("__pendentes","Pendentes",f.status) +
         opt("__atrasados","Somente atrasados",f.status) + STATUS.map(s => opt(s,s,f.status)).join("") + '</select>' +
-      '<select id="f-tipo">' + opt("","Todos os tipos",f.tipo) + TIPOS.map(t => opt(t,t,f.tipo)).join("") + '</select>' +
+      '<select id="f-tipo">' + opt("","Todos os tipos",f.tipo) + M.tipos.map(t => opt(t,t,f.tipo)).join("") + '</select>' +
       '<select id="f-prazo">' + opt("","Qualquer prazo",f.prazo) + opt("hoje","Vence hoje",f.prazo) +
         opt("semana","Próximos 7 dias",f.prazo) + opt("vencidos","Vencidos",f.prazo) + '</select>' +
       '<div class="grow"></div>' +
       '<div class="seg" id="f-vista">' +
-        '<button data-vista="lista"' + (State.vistaDistratos === "lista" ? ' class="on"' : "") + '>Lista</button>' +
-        '<button data-vista="quadro"' + (State.vistaDistratos === "quadro" ? ' class="on"' : "") + '>Quadro</button>' +
+        '<button data-vista="lista"' + (State.vistas[mk] === "lista" ? ' class="on"' : "") + '>Lista</button>' +
+        '<button data-vista="quadro"' + (State.vistas[mk] === "quadro" ? ' class="on"' : "") + '>Quadro</button>' +
       '</div>' +
       '<button class="btn sm" id="f-limpar">Limpar filtros</button>' +
       '<button class="btn sm" id="f-csv">Exportar CSV</button>' +
     '</div>' +
-    (State.vistaDistratos === "quadro" ? quadroDistratos(lista) : "") +
-    (State.vistaDistratos === "quadro" ? "" :
+    (State.vistas[mk] === "quadro" ? quadroDocs(lista) :
     '<div class="card"><div class="cb flush">' +
     (lista.length
-      ? '<table><thead><tr><th>Código</th><th>Loteamento</th><th>Adquirente / objeto</th><th>Lote</th><th>Prazo</th><th>Situação</th><th>Arquivos</th></tr></thead><tbody>' +
+      ? '<table><thead><tr><th>Código</th><th>Loteamento</th><th>Adquirente / objeto</th><th>Lote</th>' +
+        (M.temValor ? '<th>Valor</th>' : "") +
+        '<th>Prazo</th><th>Situação</th><th>Arquivos</th></tr></thead><tbody>' +
         lista.map(d => {
           const orig = ultimoArq(d,"original"), corr = ultimoArq(d,"corrigido");
           return '<tr data-open="' + d.id + '">' +
@@ -1071,43 +1123,47 @@ function renderDistratos(){
             '<td><div class="strong">' + esc(d.adquirente || "—") + '</div><div class="dim">' + esc(d.tipo_documento) +
               (d.contrato ? " · contrato " + esc(d.contrato) : "") + '</div></td>' +
             '<td>' + (identificaLote(d) ? esc(identificaLote(d)) : '<span class="dim">—</span>') + '</td>' +
+            (M.temValor ? '<td>' + (d.valor ? esc(d.valor) : '<span class="dim">—</span>') + '</td>' : "") +
             '<td>' + chipPrazo(d) + '</td><td>' + tagStatus(d.status) + '</td>' +
             '<td>' + (orig ? '<span class="chip doc">minuta</span> ' : "") +
                      (corr ? '<span class="chip ok">corrigido</span>' : "") +
                      (!orig && !corr ? '<span class="dim">—</span>' : "") + '</td></tr>';
         }).join("") + '</tbody></table>'
-      : '<div class="empty"><div class="mk">LC</div><p>Nenhum distrato encontrado com esses filtros.</p>' +
-        '<button class="btn primary" data-novo="1">+ Novo distrato</button></div>') +
+      : '<div class="empty"><div class="mk">LC</div><p>' + esc(M.vazio) + '</p>' +
+        '<button class="btn primary" data-novo="' + mk + '">' + esc(M.novo) + '</button></div>') +
     '</div></div>');
 
-  $("#f-cliente").addEventListener("change", e => { State.filtro.cliente = e.target.value; render(); });
-  $("#f-status").addEventListener("change",  e => { State.filtro.status  = e.target.value; render(); });
-  $("#f-tipo").addEventListener("change",    e => { State.filtro.tipo    = e.target.value; render(); });
-  $("#f-prazo").addEventListener("change",   e => { State.filtro.prazo   = e.target.value; render(); });
+  $("#f-cliente").addEventListener("change", e => { f.cliente = e.target.value; render(); });
+  $("#f-status").addEventListener("change",  e => { f.status  = e.target.value; render(); });
+  $("#f-tipo").addEventListener("change",    e => { f.tipo    = e.target.value; render(); });
+  $("#f-prazo").addEventListener("change",   e => { f.prazo   = e.target.value; render(); });
   $("#f-limpar").addEventListener("click", () => {
-    State.filtro = { cliente:"", status:"", tipo:"", prazo:"" };
+    State.filtros[mk] = { cliente:"", status:"", tipo:"", prazo:"" };
     State.busca = ""; $("#busca").value = ""; render();
   });
-  $("#f-csv").addEventListener("click", () => exportarCSV(lista));
+  $("#f-csv").addEventListener("click", () => exportarCSV(mk, lista));
   $$("#f-vista button").forEach(b => b.addEventListener("click", () => {
-    State.vistaDistratos = b.dataset.vista; render();
+    State.vistas[mk] = b.dataset.vista; render();
   }));
-  if (State.vistaDistratos === "quadro") ligarQuadro();
+  if (State.vistas[mk] === "quadro") ligarQuadro();
   ligarComuns();
 }
 
-function exportarCSV(lista){
-  const cab = ["Código","Loteamento","Empreendimento","Tipo","Adquirente","CPF","Contrato","Quadra","Lote",
-               "Solicitado em","Prazo","Situação","Prioridade","Responsável","Minuta","Corrigido","Observações"];
+function exportarCSV(mk, lista){
+  const M = MODULOS[mk];
+  const cab = ["Código","Loteamento","Empreendimento","Tipo","Adquirente","CPF","Contrato","Quadra","Lote"]
+    .concat(M.temValor ? ["Valor","Data da quitação"] : [])
+    .concat(["Solicitado em","Prazo","Situação","Prioridade","Responsável","Minuta","Corrigido","Observações"]);
   const linhas = lista.map(d => [codigo(d), nomeCliente(d.cliente_id), d.empreendimento, d.tipo_documento,
-    d.adquirente, d.cpf_adquirente, d.contrato, d.quadra, d.lote, fmtData(d.data_solicitacao), fmtData(d.prazo),
-    d.status, d.prioridade, d.responsavel, ultimoArq(d,"original") ? "sim" : "não",
-    ultimoArq(d,"corrigido") ? "sim" : "não", d.observacoes]);
+    d.adquirente, d.cpf_adquirente, d.contrato, d.quadra, d.lote]
+    .concat(M.temValor ? [d.valor, fmtData(d.data_quitacao)] : [])
+    .concat([fmtData(d.data_solicitacao), fmtData(d.prazo), d.status, d.prioridade, d.responsavel,
+      ultimoArq(d,"original") ? "sim" : "não", ultimoArq(d,"corrigido") ? "sim" : "não", d.observacoes]));
   const csv = [cab].concat(linhas)
     .map(l => l.map(v => '"' + String(v === null || v === undefined ? "" : v).replace(/"/g,'""') + '"').join(";")).join("\r\n");
   const url = URL.createObjectURL(new Blob(["﻿" + csv], { type:"text/csv;charset=utf-8" }));
   const a = document.createElement("a");
-  a.href = url; a.download = "distratos-" + hojeISO() + ".csv"; a.click();
+  a.href = url; a.download = mk + "-" + hojeISO() + ".csv"; a.click();
   URL.revokeObjectURL(url); toast("CSV gerado.");
 }
 
@@ -1147,39 +1203,21 @@ function renderClientes(){
 function renderCliente(){
   const c = State.clientes.find(x => x.id === State.clienteAberto);
   if (!c) { irPara("clientes"); return; }
-  const l = ordenaFila(State.distratos.filter(d => d.cliente_id === c.id));
-  const cont = s => l.filter(d => d.status === s).length;
+  const ds = ordenaFila(State.distratos.filter(d => d.cliente_id === c.id));
+  const qs = ordenaFila(State.quitacoes.filter(d => d.cliente_id === c.id));
+  const ts = ordenaTarefas(State.tarefas.filter(t => t.cliente_id === c.id));
+  const todos = ds.concat(qs);
 
-  $("#content").innerHTML =
-    '<div class="phead">' +
-      '<button class="btn sm" data-go-clientes="1">← Loteamentos</button>' +
-      '<h2>' + esc(c.nome) + '</h2><div class="sub">' + esc(c.tipo || "Loteamento") + '</div>' +
-      '<div class="grow"></div>' +
-      '<button class="btn sm" data-edit-cliente="' + c.id + '">Editar loteamento</button>' +
-      '<button class="btn primary" data-novo="' + c.id + '">+ Novo distrato</button></div>' +
-
-    '<div class="card"><div class="cb"><div class="kv" style="margin:0">' +
-      '<div><div class="k">CNPJ</div><div class="v' + (c.cnpj ? '' : ' nao') + '">' + esc(c.cnpj || "não informado") + '</div></div>' +
-      '<div><div class="k">Contato</div><div class="v' + (c.responsavel ? '' : ' nao') + '">' + esc(c.responsavel || "não informado") + '</div></div>' +
-      '<div><div class="k">Telefone</div><div class="v' + (c.telefone ? '' : ' nao') + '">' + esc(c.telefone || "não informado") + '</div></div>' +
-      '<div><div class="k">E-mail</div><div class="v' + (c.email ? '' : ' nao') + '">' + esc(c.email || "não informado") + '</div></div>' +
-      '<div><div class="k">Cidade</div><div class="v' + (c.cidade ? '' : ' nao') + '">' + esc(c.cidade || "—") + (c.uf ? "/" + esc(c.uf) : "") + '</div></div>' +
-    '</div>' + (c.obs ? '<div style="font-size:12.5px;color:var(--text-2);border-top:1px solid var(--border-soft);margin-top:14px;padding-top:13px">' + esc(c.obs) + '</div>' : "") +
-    '</div></div>' +
-
-    '<div class="strip">' +
-      '<div class="s bronze"><div class="k">Para corrigir</div><div class="v">' + cont("A corrigir") + '</div></div>' +
-      '<div class="s"><div class="k">Em correção</div><div class="v">' + cont("Em correção") + '</div></div>' +
-      '<div class="s"><div class="k">Corrigidos</div><div class="v">' + cont("Corrigido") + '</div></div>' +
-      '<div class="s"><div class="k">Finalizados</div><div class="v">' + cont("Finalizado") + '</div></div>' +
-      '<div class="s alerta"><div class="k">Atrasados</div><div class="v">' + l.filter(estaAtrasado).length + '</div></div>' +
-    '</div>' +
-
-    '<div class="card"><div class="ch"><h3>Distratos deste loteamento</h3><span class="n">' + l.length + '</span></div>' +
-    '<div class="cb flush">' +
-      (l.length
-        ? '<table><thead><tr><th>Código</th><th>Adquirente / objeto</th><th>Lote</th><th>Contrato</th><th>Prazo</th><th>Situação</th><th>Arquivos</th></tr></thead><tbody>' +
-          l.map(d => {
+  const tabelaDocs = (mk, lista) => {
+    const M = MODULOS[mk];
+    return '<div class="card"><div class="ch"><h3>' + esc(M.rotulo) + '</h3>' +
+      '<span class="n">' + lista.length + '</span><div class="grow"></div>' +
+      '<button class="btn sm" data-novo="' + mk + '" data-cli="' + c.id + '">' + esc(M.novo) + '</button></div>' +
+      '<div class="cb flush">' +
+      (lista.length
+        ? '<table><thead><tr><th>Código</th><th>Adquirente / objeto</th><th>Lote</th><th>Contrato</th>' +
+          '<th>Prazo</th><th>Situação</th><th>Arquivos</th></tr></thead><tbody>' +
+          lista.map(d => {
             const orig = ultimoArq(d,"original"), corr = ultimoArq(d,"corrigido");
             return '<tr data-open="' + d.id + '"><td class="mono">' + codigo(d) +
               (d.prioridade === "Urgente" ? ' <span class="tag t-urg">!</span>' : "") + '</td>' +
@@ -1191,9 +1229,44 @@ function renderCliente(){
                        (corr ? '<span class="chip ok">corrigido</span>' : "") +
                        (!orig && !corr ? '<span class="dim">—</span>' : "") + '</td></tr>';
           }).join("") + '</tbody></table>'
-        : '<div class="empty"><div class="mk">LC</div><p>Nenhum distrato lançado para este loteamento.</p>' +
-          '<button class="btn primary" data-novo="' + c.id + '">+ Novo distrato</button></div>') +
-    '</div></div>';
+        : '<div class="empty" style="padding:26px"><p>Nada lançado ainda.</p></div>') +
+      '</div></div>';
+  };
+
+  $("#content").innerHTML =
+    '<div class="phead">' +
+      '<button class="btn sm" data-go-clientes="1">← Loteamentos</button>' +
+      '<h2>' + esc(c.nome) + '</h2><div class="sub">' + esc(c.tipo || "Loteamento") + '</div>' +
+      '<div class="grow"></div>' +
+      '<button class="btn sm" data-edit-cliente="' + c.id + '">Editar loteamento</button>' +
+      '<button class="btn primary" data-novo="distratos" data-cli="' + c.id + '">+ Novo distrato</button></div>' +
+
+    '<div class="card"><div class="cb"><div class="kv" style="margin:0">' +
+      '<div><div class="k">CNPJ</div><div class="v' + (c.cnpj ? '' : ' nao') + '">' + esc(c.cnpj || "não informado") + '</div></div>' +
+      '<div><div class="k">Contato</div><div class="v' + (c.responsavel ? '' : ' nao') + '">' + esc(c.responsavel || "não informado") + '</div></div>' +
+      '<div><div class="k">Telefone</div><div class="v' + (c.telefone ? '' : ' nao') + '">' + esc(c.telefone || "não informado") + '</div></div>' +
+      '<div><div class="k">E-mail</div><div class="v' + (c.email ? '' : ' nao') + '">' + esc(c.email || "não informado") + '</div></div>' +
+      '<div><div class="k">Cidade</div><div class="v' + (c.cidade ? '' : ' nao') + '">' + esc(c.cidade || "—") + (c.uf ? "/" + esc(c.uf) : "") + '</div></div>' +
+    '</div>' + (c.obs ? '<div style="font-size:12.5px;color:var(--text-2);border-top:1px solid var(--border-soft);margin-top:14px;padding-top:13px">' + esc(c.obs) + '</div>' : "") +
+    '</div></div>' +
+
+    '<div class="strip">' +
+      '<div class="s bronze"><div class="k">Distratos</div><div class="v">' + ds.length + '</div>' +
+        '<div class="d">' + ds.filter(pendente).length + ' pendentes</div></div>' +
+      '<div class="s bronze"><div class="k">Termos de quitação</div><div class="v">' + qs.length + '</div>' +
+        '<div class="d">' + qs.filter(pendente).length + ' pendentes</div></div>' +
+      '<div class="s"><div class="k">Extrajudiciais</div><div class="v">' + ts.length + '</div>' +
+        '<div class="d">' + ts.filter(tarefaPendente).length + ' pendentes</div></div>' +
+      '<div class="s' + (todos.filter(estaAtrasado).length + ts.filter(tarefaAtrasada).length ? " alerta" : "") + '">' +
+        '<div class="k">Atrasados</div><div class="v">' +
+        (todos.filter(estaAtrasado).length + ts.filter(tarefaAtrasada).length) + '</div></div>' +
+    '</div>' +
+
+    tabelaDocs("distratos", ds) + tabelaDocs("quitacoes", qs) +
+    (ts.length
+      ? '<div class="card"><div class="ch"><h3>Extrajudiciais</h3><span class="n">' + ts.length + '</span></div>' +
+        '<div class="cb">' + ts.map(linhaTarefa).join("") + '</div></div>'
+      : "");
   ligarComuns();
 }
 
@@ -1508,10 +1581,10 @@ function abrirTarefa(id){
    LIGAÇÕES COMUNS
    ============================================================================ */
 function ligarComuns(){
-  $$("[data-open]").forEach(el => el.addEventListener("click", () => abrirDistrato(el.dataset.open)));
+  $$("[data-open]").forEach(el => el.addEventListener("click", () => abrirDoc(el.dataset.open)));
   $$("[data-cliente]").forEach(el => el.addEventListener("click", () => irPara("cliente", el.dataset.cliente)));
   $$("[data-novo]").forEach(el => el.addEventListener("click", () =>
-    formDistrato(null, el.dataset.novo !== "1" ? el.dataset.novo : null)));
+    formDoc(el.dataset.novo, null, el.dataset.cli || null)));
   $$("[data-novo-cliente]").forEach(el => el.addEventListener("click", () => formCliente(null)));
   $$("[data-edit-cliente]").forEach(el => el.addEventListener("click", () => formCliente(el.dataset.editCliente)));
   $$("[data-go-clientes]").forEach(el => el.addEventListener("click", () => irPara("clientes")));
@@ -1529,7 +1602,8 @@ function ligarComuns(){
 function render(){
   renderTabs();
   if (State.view === "painel") renderPainel();
-  else if (State.view === "distratos") renderDistratos();
+  else if (State.view === "distratos") renderDocs("distratos");
+  else if (State.view === "quitacoes") renderDocs("quitacoes");
   else if (State.view === "tarefas") renderTarefas();
   else if (State.view === "clientes") renderClientes();
   else if (State.view === "cliente") renderCliente();
@@ -1597,34 +1671,43 @@ function formCliente(id){
 }
 
 /* --- distrato: cadastro/edição --- */
-function formDistrato(id, clientePre){
+function formDoc(mk, id, clientePre){
+  const M = MODULOS[mk];
   if (!State.clientes.length) { toast("Cadastre um loteamento antes.", "err"); formCliente(null); return; }
-  const d = id ? State.distratos.find(x => x.id === id) : null;
+  const d = id ? State[mk].find(x => x.id === id) : null;
   const sel = d ? d.cliente_id : (clientePre || (State.view === "cliente" ? State.clienteAberto : "") || State.clientes[0].id);
   const opt = (v,t,s) => '<option value="' + esc(v) + '"' + (s === v ? " selected" : "") + ">" + esc(t) + "</option>";
 
   const m = abrirModal(
-    '<div class="mh"><h3>' + (d ? "Editar " + codigo(d) : "Novo distrato") + '</h3><button class="x" data-fechar>✕</button></div>' +
+    '<div class="mh"><h3>' + (d ? "Editar " + codigo(d) : "Novo " + esc(M.singular)) + '</h3>' +
+      '<button class="x" data-fechar>✕</button></div>' +
     '<div class="mb">' +
       '<div class="fg"><label>Loteamento *</label><select id="d-cliente">' +
         State.clientes.map(c => opt(c.id, c.nome, sel)).join("") + '</select></div>' +
       (d ? "" :
-        '<div class="sec destaque" style="margin:16px 0 22px"><div class="st"><span>Arquivo do distrato para o Dr. corrigir</span></div>' +
+        '<div class="sec destaque" style="margin:16px 0 22px"><div class="st"><span>Arquivo para o Dr. corrigir</span></div>' +
         '<div class="dz" id="d-drop"><div class="t">Clique aqui para escolher o arquivo</div>' +
         '<div class="s">Word, PDF ou outro — ou arraste o arquivo para cá</div></div>' +
         '<div id="d-filename" style="font-size:12.5px;color:var(--accent-deep);margin-top:10px;font-weight:600"></div></div>') +
       '<div class="g2">' +
         '<div class="fg"><label>Tipo de documento</label><select id="d-tipo">' +
-          TIPOS.map(t => opt(t,t, d ? d.tipo_documento : "Distrato")).join("") + '</select></div>' +
+          M.tipos.map(t => opt(t,t, d ? d.tipo_documento : M.tipoPadrao)).join("") + '</select></div>' +
         '<div class="fg"><label>Empreendimento</label><input id="d-emp" value="' + esc(d && d.empreendimento) + '" placeholder="ex.: Residencial Bela Vista"></div>' +
-        '<div class="fg"><label>Adquirente (distratante)</label><input id="d-adq" value="' + esc(d && d.adquirente) + '"></div>' +
+        '<div class="fg"><label>Adquirente</label><input id="d-adq" value="' + esc(d && d.adquirente) + '"></div>' +
         '<div class="fg"><label>CPF do adquirente</label><input id="d-cpf" value="' + esc(d && d.cpf_adquirente) + '"></div>' +
         '<div class="fg"><label>Quadra</label><input id="d-quadra" value="' + esc(d && d.quadra) + '"></div>' +
         '<div class="fg"><label>Lote</label><input id="d-lote" value="' + esc(d && d.lote) + '"></div>' +
         '<div class="fg"><label>Nº do contrato</label><input id="d-contrato" value="' + esc(d && d.contrato) + '"></div>' +
         '<div class="fg"><label>Responsável pela minuta</label><input id="d-resp" value="' + esc(d ? d.responsavel : quem()) + '"></div>' +
-        '<div class="fg"><label>Data da solicitação</label><input type="date" id="d-solic" value="' + esc(d ? String(d.data_solicitacao||"").slice(0,10) : hojeISO()) + '"></div>' +
-        '<div class="fg"><label>Prazo para correção</label><input type="date" id="d-prazo" value="' + esc(d ? String(d.prazo||"").slice(0,10) : "") + '"></div>' +
+        (M.temValor
+          ? '<div class="fg"><label>Valor quitado</label><input id="d-valor" value="' + esc(d && d.valor) + '" placeholder="ex.: R$ 45.000,00"></div>' +
+            '<div class="fg"><label>Data da quitação</label><input type="date" id="d-dataq" value="' +
+              esc(d ? String(d.data_quitacao||"").slice(0,10) : "") + '"></div>'
+          : "") +
+        '<div class="fg"><label>Data da solicitação</label><input type="date" id="d-solic" value="' +
+          esc(d ? String(d.data_solicitacao||"").slice(0,10) : hojeISO()) + '"></div>' +
+        '<div class="fg"><label>Prazo para correção</label><input type="date" id="d-prazo" value="' +
+          esc(d ? String(d.prazo||"").slice(0,10) : "") + '"></div>' +
         '<div class="fg"><label>Prioridade</label><select id="d-pri">' +
           opt("Normal","Normal", d ? d.prioridade : "Normal") + opt("Urgente","Urgente", d ? d.prioridade : "Normal") + '</select></div>' +
         (d ? '<div class="fg"><label>Situação</label><select id="d-status">' + STATUS.map(s => opt(s,s,d.status)).join("") + '</select></div>' : '') +
@@ -1661,6 +1744,10 @@ function formDistrato(id, clientePre){
       responsavel:$("#d-resp",m).value.trim()||null, data_solicitacao:$("#d-solic",m).value || hojeISO(),
       prazo:$("#d-prazo",m).value||null, prioridade:$("#d-pri",m).value,
       observacoes:$("#d-obs",m).value.trim()||null };
+    if (M.temValor) {
+      dados.valor = $("#d-valor",m).value.trim()||null;
+      dados.data_quitacao = $("#d-dataq",m).value||null;
+    }
     try {
       if (d) {
         const novoStatus = $("#d-status", m).value;
@@ -1670,16 +1757,17 @@ function formDistrato(id, clientePre){
           if (novoStatus === "Corrigido") { dados.corrigido_em = new Date().toISOString(); dados.corrigido_por = quem(); }
           if (novoStatus === "Finalizado") dados.finalizado_em = new Date().toISOString();
         }
-        const { error } = await sb.from("distratos").update(dados).eq("id", d.id); if (error) throw error;
-        fecharModal(); await recarregar(true); toast("Distrato atualizado.");
+        const { error } = await sb.from(M.tabela).update(dados).eq("id", d.id); if (error) throw error;
+        fecharModal(); await recarregar(true); toast("Registro atualizado.");
       } else {
         dados.status = "A corrigir"; dados.criado_por = quem();
-        dados.historico = addHistorico({}, "Distrato cadastrado.");
-        const { data:novo, error } = await sb.from("distratos").insert(dados).select().single();
+        dados.historico = addHistorico({}, "Registro cadastrado.");
+        const { data:novo, error } = await sb.from(M.tabela).insert(dados).select().single();
         if (error) throw error;
-        fecharModal(); State.distratos.unshift(novo);
-        if (arquivoNovo) await enviarArquivo("distratos", novo, arquivoNovo, "original");
-        await recarregar(true); toast("Distrato cadastrado.");
+        novo.__mod = mk;
+        fecharModal(); State[mk].unshift(novo);
+        if (arquivoNovo) await enviarArquivo(M.tabela, novo, arquivoNovo, "original");
+        await recarregar(true); toast("Registro cadastrado.");
       }
     } catch(e){ toast("Erro ao salvar: " + e.message, "err"); }
   });
@@ -1689,24 +1777,25 @@ function formDistrato(id, clientePre){
     try {
       const paths = (d.arquivos || []).map(a => a.path);
       if (paths.length) await sb.storage.from(BUCKET).remove(paths);
-      const { error } = await sb.from("distratos").delete().eq("id", d.id); if (error) throw error;
-      fecharModal(); await recarregar(true); toast("Distrato excluído.");
+      const { error } = await sb.from(M.tabela).delete().eq("id", d.id); if (error) throw error;
+      fecharModal(); await recarregar(true); toast("Registro excluído.");
     } catch(e){ toast("Erro: " + e.message, "err"); }
   });
 }
 
 /* --- distrato: ficha --- */
 async function mudarStatus(id, novo){
-  const d = State.distratos.find(x => x.id === id);
-  if (!d || d.status === novo) return;
+  const achado = achaDoc(id);
+  if (!achado || achado.doc.status === novo) return;
+  const d = achado.doc;
   const patch = { status:novo, historico: addHistorico(d, 'Situação alterada de "' + d.status + '" para "' + novo + '".') };
   if (novo === "Corrigido")  { patch.corrigido_em = new Date().toISOString(); patch.corrigido_por = quem(); }
   if (novo === "Finalizado") patch.finalizado_em = new Date().toISOString();
   if (novo === "A corrigir") { patch.corrigido_em = null; patch.corrigido_por = null; patch.finalizado_em = null; }
   try {
-    await atualizarDistrato(id, patch);
+    await atualizarRegistro(achado.mk, id, patch);
     toast("Situação: " + novo); render();
-    if ($("#overlay").classList.contains("on")) abrirDistrato(id);
+    if ($("#overlay").classList.contains("on")) abrirDoc(id);
   } catch(e){ toast("Erro: " + e.message, "err"); }
 }
 
@@ -1727,9 +1816,10 @@ function blocoArquivos(d, tipo, titulo, ajuda, destaque){
       : '<div class="dz" data-up="' + tipo + '"><div class="t">Nenhum arquivo</div><div class="s">' + ajuda + '</div></div>');
 }
 
-function abrirDistrato(id){
-  const d = State.distratos.find(x => x.id === id);
-  if (!d) return;
+function abrirDoc(id){
+  const achado = achaDoc(id);
+  if (!achado) return;
+  const d = achado.doc, mk = achado.mk, M = MODULOS[mk];
   const c = State.clientes.find(x => x.id === d.cliente_id);
   const hist = (Array.isArray(d.historico) ? d.historico : []).slice().reverse();
 
@@ -1752,6 +1842,11 @@ function abrirDistrato(id){
         '<div><div class="k">Quadra / lote</div><div class="v' + (identificaLote(d) ? '' : ' nao') + '">' + esc(identificaLote(d) || "—") + '</div></div>' +
         '<div><div class="k">Contrato</div><div class="v' + (d.contrato ? '' : ' nao') + '">' + esc(d.contrato || "—") + '</div></div>' +
         '<div><div class="k">CPF do adquirente</div><div class="v' + (d.cpf_adquirente ? '' : ' nao') + '">' + esc(d.cpf_adquirente || "—") + '</div></div>' +
+        (M.temValor
+          ? '<div><div class="k">Valor quitado</div><div class="v' + (d.valor ? '' : ' nao') + '">' + esc(d.valor || "—") + '</div></div>' +
+            '<div><div class="k">Data da quitação</div><div class="v' + (d.data_quitacao ? '' : ' nao') + '">' +
+              (d.data_quitacao ? fmtData(d.data_quitacao) : "—") + '</div></div>'
+          : "") +
         '<div><div class="k">Solicitado em</div><div class="v">' + fmtData(d.data_solicitacao) + '</div></div>' +
         '<div><div class="k">Prazo</div><div class="v">' + chipPrazo(d) + '</div></div>' +
         '<div><div class="k">Responsável</div><div class="v' + (d.responsavel ? '' : ' nao') + '">' + esc(d.responsavel || "—") + '</div></div>' +
@@ -1759,8 +1854,8 @@ function abrirDistrato(id){
       '</div>' +
       (d.observacoes ? '<div class="sec"><div class="st">Observações da equipe</div>' +
         '<div style="font-size:12.8px;color:var(--text-2);white-space:pre-wrap">' + esc(d.observacoes) + '</div></div>' : "") +
-      blocoArquivos(d, "original", "Minuta enviada para correção", "Anexe aqui o distrato elaborado pela equipe", false) +
-      blocoArquivos(d, "corrigido", "Versão corrigida pelo Dr. Leilton", "Ao anexar, o distrato é marcado como corrigido", true) +
+      blocoArquivos(d, "original", "Minuta enviada para correção", "Anexe aqui o documento elaborado pela equipe", false) +
+      blocoArquivos(d, "corrigido", "Versão corrigida pelo Dr. Leilton", "Ao anexar, o registro é marcado como corrigido", true) +
       '<div class="sec"><div class="st">Apontamentos da correção</div>' +
         '<textarea id="x-parecer" rows="3" placeholder="O que foi ajustado, o que a equipe deve observar…" ' +
         'style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--panel-2);font-size:12.8px;outline:none;font-family:inherit">' + esc(d.parecer) + '</textarea>' +
@@ -1774,21 +1869,21 @@ function abrirDistrato(id){
   );
 
   $$("[data-st]", m).forEach(b => b.addEventListener("click", () => mudarStatus(d.id, b.dataset.st)));
-  $("#x-editar", m).addEventListener("click", () => { fecharModal(); formDistrato(d.id); });
+  $("#x-editar", m).addEventListener("click", () => { fecharModal(); formDoc(mk, d.id); });
   $$("[data-dl]", m).forEach(b => b.addEventListener("click", () => {
     const a = (d.arquivos || []).find(x => x.path === b.dataset.dl); if (a) baixarArquivo(a); }));
   $$("[data-rm]", m).forEach(b => b.addEventListener("click", () => {
-    const a = (d.arquivos || []).find(x => x.path === b.dataset.rm); if (a) apagarArquivo("distratos", d, a); }));
+    const a = (d.arquivos || []).find(x => x.path === b.dataset.rm); if (a) apagarArquivo(mk, d, a); }));
   $$("[data-up]", m).forEach(b => b.addEventListener("click", () => {
     const inp = document.createElement("input");
     inp.type = "file";
-    inp.onchange = () => { if (inp.files[0]) enviarArquivo("distratos", d, inp.files[0], b.dataset.up); };
+    inp.onchange = () => { if (inp.files[0]) enviarArquivo(mk, d, inp.files[0], b.dataset.up); };
     inp.click();
   }));
   $("#x-salvar-parecer", m).addEventListener("click", async () => {
     const txt = $("#x-parecer", m).value.trim();
     try {
-      await atualizarDistrato(d.id, { parecer:txt||null, historico: addHistorico(d, "Apontamentos da correção atualizados.") });
+      await atualizarRegistro(mk, d.id, { parecer:txt||null, historico: addHistorico(d, "Apontamentos da correção atualizados.") });
       toast("Apontamentos salvos."); render();
     } catch(e){ toast("Erro: " + e.message, "err"); }
   });
@@ -1797,7 +1892,8 @@ function abrirDistrato(id){
 /* ============================================================================
    TOPO E INICIALIZAÇÃO
    ============================================================================ */
-$("#btn-novo").addEventListener("click", () => formDistrato(null));
+$("#btn-novo").addEventListener("click", () =>
+  formDoc(State.view === "quitacoes" ? "quitacoes" : "distratos", null));
 $("#btn-reload").addEventListener("click", () => recarregar(false));
 $("#busca").addEventListener("input", e => { State.busca = e.target.value; render(); });
 $("#btn-tema").addEventListener("click", () => {

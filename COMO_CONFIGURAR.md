@@ -1,8 +1,11 @@
 # Controle de Distratos
 
-Controle de prazos extrajudiciais dos loteamentos. A equipe lança o distrato e anexa a
+Controle de prazos extrajudiciais dos loteamentos. A equipe lança o documento e anexa a
 minuta, o Dr. Leilton corrige e anexa a versão corrigida, e o painel mostra a qualquer
 momento o que está **para corrigir** e o que já foi **corrigido**.
+
+São três frentes, cada uma com sua aba: **Distratos**, **Quitações** (termos de quitação) e
+**Extrajudiciais** (diligências como cartório e prefeitura).
 
 **Endereço do sistema:** https://regodiasdaniel.github.io/controle-distratos/
 
@@ -37,6 +40,14 @@ dados continuam vindo da nuvem, então precisa de internet de qualquer forma.
 - Todo movimento — anexos, mudança de status, apontamentos — fica registrado no
   **Histórico** de cada distrato, com data, hora e quem fez.
 
+### Termos de quitação
+
+A aba **Quitações** funciona exatamente como a de Distratos — mesmo fluxo de minuta,
+correção e anexo da versão corrigida, mesmo quadro de colunas, mesmos prazos. A diferença
+são dois campos próprios: **valor quitado** e **data da quitação**, que aparecem no cadastro,
+na ficha, na lista e na exportação em CSV. Os códigos começam com `TQ-`, contra `DST-` dos
+distratos, então nunca se confundem.
+
 ### Extrajudiciais
 
 A aba **Extrajudiciais** controla as diligências: ir ao cartório, protocolar na prefeitura,
@@ -59,11 +70,12 @@ aparece no Painel, logo abaixo do quadro de colunas.
 - **Várias versões do mesmo arquivo**: pode anexar quantas quiser. A mais recente fica
   marcada como *atual*; as anteriores continuam disponíveis para consulta.
 - **Busca** (topo): procura por adquirente, lote, contrato, empreendimento ou código.
-- **Painel**: é um relatório. Mostra dois gráficos de rosca lado a lado — um de distratos,
-  outro de extrajudiciais — com a divisão por situação, quantidade e percentual de cada
-  fatia. Em cima, quatro números: pendentes de cada lado, atrasados e vencendo hoje.
+- **Painel**: é um relatório. Mostra três gráficos de rosca lado a lado — distratos,
+  termos de quitação e extrajudiciais — com a divisão por situação, quantidade e percentual
+  de cada fatia. Em cima, cinco números: pendentes de cada frente, atrasados e vencendo hoje.
   Clicar em qualquer número, fatia da legenda ou botão *Abrir* leva à lista já filtrada.
-- **Quadro de colunas**: fica na aba **Distratos**, no botão *Quadro* ao lado dos filtros.
+- **Quadro de colunas**: fica nas abas **Distratos** e **Quitações**, no botão *Quadro* ao
+  lado dos filtros.
   O distrato caminha de *A corrigir* até *Finalizado*, e dá para **arrastar o cartão** de
   uma coluna para outra para mudar a situação. O botão *Lista* volta à tabela.
 - **Exportar CSV**: na tela de Distratos, gera uma planilha do que estiver filtrado.
@@ -97,7 +109,7 @@ Ao criar um usuário novo, marque **"Auto Confirm User"**, senão o login não e
 | Banco e arquivos | Supabase, projeto `distratos` (ref `ybohudryuadtcifpuwsj`), região São Paulo |
 | Código | github.com/regodiasdaniel/controle-distratos |
 | Site | GitHub Pages, branch `main`, pasta raiz |
-| Tabelas | `clientes`, `distratos`, `tarefas` |
+| Tabelas | `clientes`, `distratos`, `quitacoes`, `tarefas` |
 | Arquivos | bucket privado `distratos`, 25 MB por arquivo |
 
 A senha do banco Postgres **não é usada pelo sistema**. Se precisar dela algum dia e não

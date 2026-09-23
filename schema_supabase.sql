@@ -203,3 +203,62 @@ create trigger tarefas_toca_atualizado
   before update on public.tarefas
   for each row execute function public.toca_atualizado_em();
 
+-- ============================================================================
+--  6. TERMOS DE QUITACAO (mesmo fluxo de correcao dos distratos)
+-- ============================================================================
+
+create table if not exists public.quitacoes (
+  id                uuid primary key default gen_random_uuid(),
+  numero            bigint generated always as identity,
+  cliente_id        uuid not null references public.clientes(id) on delete cascade,
+
+  tipo_documento    text not null default 'Termo de Quitacao',
+  empreendimento    text,
+  quadra            text,
+  lote              text,
+  contrato          text,
+  adquirente        text,
+  cpf_adquirente    text,
+
+  valor             text,        -- proprio da quitacao
+  data_quitacao     date,        -- proprio da quitacao
+
+  status            text not null default 'A corrigir',
+  prioridade        text not null default 'Normal',
+  data_solicitacao  date  not null default current_date,
+  prazo             date,
+  responsavel       text,
+
+  arquivos          jsonb not null default '[]'::jsonb,
+  historico         jsonb not null default '[]'::jsonb,
+
+  observacoes       text,
+  parecer           text,
+
+  criado_em         timestamptz not null default now(),
+  criado_por        text,
+  atualizado_em     timestamptz not null default now(),
+  corrigido_em      timestamptz,
+  corrigido_por     text,
+  finalizado_em     timestamptz
+);
+
+create index if not exists quitacoes_cliente_idx on public.quitacoes (cliente_id);
+create index if not exists quitacoes_status_idx  on public.quitacoes (status);
+create index if not exists quitacoes_prazo_idx   on public.quitacoes (prazo);
+
+grant select, insert, update, delete on public.quitacoes to authenticated;
+revoke all on public.quitacoes from anon;
+
+alter table public.quitacoes enable row level security;
+
+drop policy if exists "somente logado" on public.quitacoes;
+create policy "somente logado" on public.quitacoes
+  for all to authenticated
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+drop trigger if exists quitacoes_toca_atualizado on public.quitacoes;
+create trigger quitacoes_toca_atualizado
+  before update on public.quitacoes
+  for each row execute function public.toca_atualizado_em();
